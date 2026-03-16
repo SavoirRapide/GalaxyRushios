@@ -8322,5 +8322,29 @@ if (window.Capacitor) {
     document.addEventListener('deviceready', initAds, false);
 }
 </script>
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-analytics-compat.js"></script>
+
+<script>
+  // Tes vrais identifiants Web (ceux de ton dernier message)
+  const firebaseConfig = {
+    apiKey: "AIzaSyAMdex8DfWS5tspB7daDUMQH4eWTdr9AwI",
+    authDomain: "galaxy-rush-9e34e.firebaseapp.com",
+    projectId: "galaxy-rush-9e34e",
+    storageBucket: "galaxy-rush-9e34e.firebasestorage.app",
+    messagingSenderId: "133575459059",
+    appId: "1:133575459059:web:34b7a35cefb4fd33b73786",
+    measurementId: "G-8QKV6KV1B0"
+  };
+
+  // Initialisation sécurisée
+  if (typeof firebase !== 'undefined') {
+    firebase.initializeApp(firebaseConfig);
+    firebase.analytics();
+    console.log("🚀 Firebase Web-in-iOS est activé avec l'ID Web !");
+  } else {
+    console.error("❌ Erreur : Le script Firebase n'a pas pu être chargé.");
+  }
+</script>
 </body>
 </html>   
