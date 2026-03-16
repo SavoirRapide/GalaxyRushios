@@ -1,0 +1,62 @@
+workflows:
+  ios-capacitor-workflow:
+    name: Galaxy Rush iOS Build 1.0.5
+    max_build_duration: 60
+    instance_type: mac_mini_m2
+
+    integrations:
+      app_store_connect: AppStoreGalaxyRush
+
+    environment:
+      xcode: latest
+      node: 22
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.a2games.galaxyrush
+      vars:
+        ADMOB_APP_ID: "ca-app-pub-2409581870901167~7654643904"
+
+    scripts:
+      - name: Install dependencies
+        script: |
+          npm install
+          # Suppression forcée du plugin natif pour éviter le crash
+          npm uninstall @capacitor-firebase/app || true
+
+      - name: Build web assets
+        script: |
+          # Construction de ton jeu (ton index.html modifié sera inclus ici)
+          npm run build || echo "Skip build"
+
+      - name: Sync and Cleanup Capacitor
+        script: |
+          # Nettoie les anciens liens natifs et synchronise le nouveau code web
+          npx cap cleanup ios
+          npx cap sync ios
+
+      - name: Configure AdMob & Version
+        script: |
+          cd ios/App/App
+          /usr/libexec/PlistBuddy -c "Delete :GADApplicationIdentifier" Info.plist || true
+          /usr/libexec/PlistBuddy -c "Add :GADApplicationIdentifier string $ADMOB_APP_ID" Info.plist
+          /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString 1.0.5" Info.plist
+          /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $BUILD_NUMBER" Info.plist
+
+      - name: Set up code signing
+        script: |
+          xcode-project use-profiles
+
+      - name: Build IPA
+        script: |
+          cd ios
+          WORKSPACE=$(find . -maxdepth 3 -name "*.xcworkspace" | head -n 1)
+          xcode-project build-ipa --workspace "$WORKSPACE" --scheme App
+
+    artifacts:
+      - ios/build/ios/ipa/*.ipa
+      - "*.ipa"
+
+    publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true
