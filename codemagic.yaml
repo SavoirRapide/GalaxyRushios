@@ -26,10 +26,14 @@ workflows:
         script: |
           npm run build || echo "Skip build"
 
-      - name: Sync and Cleanup Capacitor
+      # 🔥 LE FIX EST ICI : ON FORCE LA CRÉATION DU WORKSPACE
+      - name: Sync and Install Pods
         script: |
           npx cap cleanup ios
           npx cap sync ios
+          echo "Installation forcée des dépendances natives (CocoaPods)..."
+          cd ios/App
+          pod install --repo-update
 
       - name: Configure AdMob & Version
         script: |
@@ -75,20 +79,14 @@ workflows:
         script: |
           xcode-project use-profiles
 
+      # 🚀 BUILD SIMPLIFIÉ ET ROBUSTE
       - name: Build IPA
         script: |
-          cd ios
-          
-          # On cherche le VRAI workspace en excluant les dossiers internes d'Xcode
-          WORKSPACE=$(find . -maxdepth 2 -name "*.xcworkspace" | grep -v ".xcodeproj" | head -n 1)
-
-          if [ -n "$WORKSPACE" ]; then
-            echo "✅ VRAI Workspace trouvé : $WORKSPACE"
-            xcode-project build-ipa --workspace "$WORKSPACE" --scheme App
-          else
-            echo "⚠️ Aucun workspace CocoaPods trouvé -> fallback sur .xcodeproj"
-            xcode-project build-ipa --project "App/App.xcodeproj" --scheme App
-          fi
+          cd ios/App
+          echo "Contenu du dossier (vérification de la présence de App.xcworkspace) :"
+          ls -la
+          # Le pod install a généré le workspace, on le compile direct
+          xcode-project build-ipa --workspace "App.xcworkspace" --scheme App
 
     artifacts:
       - ios/build/ios/ipa/*.ipa
