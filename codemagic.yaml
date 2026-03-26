@@ -20,6 +20,8 @@ workflows:
       - name: Install dependencies
         script: |
           npm install
+          # On s'assure que le plugin Game Center est présent
+          npm install capacitor-game-connect
           npm uninstall @capacitor-firebase/app || true
 
       - name: Build web assets
@@ -28,7 +30,6 @@ workflows:
 
       - name: Sync Capacitor (SPM Mode)
         script: |
-          # Seulement sync, c'est suffisant et parfait pour SPM
           npx cap sync ios
 
       - name: Configure AdMob & Version
@@ -42,7 +43,7 @@ workflows:
       - name: Fix Game Center Entitlements
         script: |
           cd ios/App
-          echo "1. Création du fichier App.entitlements..."
+          # On crée le fichier d'entitlements à la racine du dossier App
           cat << 'EOF' > App/App.entitlements
           <?xml version="1.0" encoding="UTF-8"?>
           <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -54,20 +55,16 @@ workflows:
           </plist>
           EOF
           
-          echo "2. Injection sur le target App..."
           ruby -e "
           require 'xcodeproj'
           project = Xcodeproj::Project.open('App.xcodeproj')
           target = project.targets.find { |t| t.name == 'App' }
           if target
             target.build_configurations.each do |config|
+              # On pointe vers le fichier qu'on vient de créer
               config.build_settings['CODE_SIGN_ENTITLEMENTS'] = 'App/App.entitlements'
             end
             project.save
-            puts '✅ Entitlements injectés'
-          else
-            puts '❌ Erreur : Target App non trouvé'
-            exit 1
           end
           "
 
@@ -75,11 +72,17 @@ workflows:
         script: |
           xcode-project use-profiles
 
-      - name: Build IPA (SPM Project)
+      - name: Resolve Swift Packages
         script: |
           cd ios/App
-          # On compile directement le .xcodeproj, car c'est la norme avec Swift Package Manager !
-          xcode-project build-ipa --project "App.xcodeproj" --scheme App
+          # Étape CRITIQUE pour Xcode 16 / SPM
+          xcodebuild -resolvePackageDependencies -project App.xcodeproj -scheme App
+
+      - name: Build IPA
+        script: |
+          cd ios/App
+          # On utilise les drapeaux de nettoyage pour éviter les vieux résidus
+          xcode-project build-ipa --project "App.xcodeproj" --scheme App --clean
 
     artifacts:
       - ios/build/ios/ipa/*.ipa
