@@ -1,6 +1,6 @@
 workflows:
   ios-capacitor-workflow:
-    name: Galaxy Rush iOS Build 1.0.5
+    name: Galaxy Rush iOS Build 1.0.6
     max_build_duration: 60
     instance_type: mac_mini_m2
 
@@ -25,12 +25,10 @@ workflows:
 
       - name: Build web assets
         script: |
-          # Construction de ton jeu (ton index.html modifié sera inclus ici)
           npm run build || echo "Skip build"
 
       - name: Sync and Cleanup Capacitor
         script: |
-          # Nettoie les anciens liens natifs et synchronise le nouveau code web
           npx cap cleanup ios
           npx cap sync ios
 
@@ -39,8 +37,34 @@ workflows:
           cd ios/App/App
           /usr/libexec/PlistBuddy -c "Delete :GADApplicationIdentifier" Info.plist || true
           /usr/libexec/PlistBuddy -c "Add :GADApplicationIdentifier string $ADMOB_APP_ID" Info.plist
-          /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString 1.0.5" Info.plist
+          /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString 1.0.6" Info.plist
           /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $BUILD_NUMBER" Info.plist
+
+      # 🔥 L'ÉTAPE MAGIQUE POUR LE GAME CENTER 🔥
+      - name: Force Game Center Entitlements
+        script: |
+          echo "1. Création du fichier App.entitlements..."
+          cat << 'EOF' > ios/App/App/App.entitlements
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+              <key>com.apple.developer.game-center</key>
+              <true/>
+          </dict>
+          </plist>
+          EOF
+          
+          echo "2. Injection dans le projet Xcode via Ruby..."
+          ruby -e "
+          require 'xcodeproj'
+          project_path = 'ios/App/App.xcodeproj'
+          project = Xcodeproj::Project.open(project_path)
+          project.targets.first.build_configurations.each do |config|
+            config.build_settings['CODE_SIGN_ENTITLEMENTS'] = 'App/App.entitlements'
+          end
+          project.save
+          "
 
       - name: Set up code signing
         script: |
