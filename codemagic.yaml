@@ -54,19 +54,17 @@ workflows:
           </plist>
           EOF
           
-          echo "2. Injection UNIQUEMENT sur le target App..."
+          echo "2. Injection sur le target App..."
           ruby -e "
           require 'xcodeproj'
           project = Xcodeproj::Project.open('App.xcodeproj')
-          # On cherche spécifiquement la cible principale
           target = project.targets.find { |t| t.name == 'App' }
-          
           if target
             target.build_configurations.each do |config|
               config.build_settings['CODE_SIGN_ENTITLEMENTS'] = 'App/App.entitlements'
             end
             project.save
-            puts '✅ Entitlements injectés avec succès dans le target App'
+            puts '✅ Entitlements injectés'
           else
             puts '❌ Erreur : Target App non trouvé'
             exit 1
@@ -79,8 +77,19 @@ workflows:
 
       - name: Build IPA
         script: |
-          cd ios/App
-          xcode-project build-ipa --workspace "App.xcworkspace" --scheme App
+          cd ios
+          # Recherche du workspace
+          WORKSPACE=$(find . -name "*.xcworkspace" -not -path "*/.*" | head -n 1)
+
+          if [ -n "$WORKSPACE" ]; then
+            echo "✅ Workspace trouvé : $WORKSPACE"
+            xcode-project build-ipa --workspace "$WORKSPACE" --scheme App
+          else
+            echo "⚠️ Aucun workspace trouvé -> fallback .xcodeproj"
+            # On cherche le projet si le workspace est absent
+            PROJECT=$(find . -name "*.xcodeproj" -not -path "*/.*" | head -n 1)
+            xcode-project build-ipa --project "$PROJECT" --scheme App
+          fi
 
     artifacts:
       - ios/build/ios/ipa/*.ipa
