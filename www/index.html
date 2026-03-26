@@ -236,47 +236,62 @@ body.comboActive #combo {
 
 /* BOUTONS MENU (C'est ici qu'on applique le SCALE) */
 #menuButtons {
-  position: relative; display: flex; flex-direction: column; gap: 12px; 
-  z-index: 10; margin-top: 15vh;
+  position: relative; 
+  display: grid; /* 🔥 CHANGEMENT: On passe en grille */
+  grid-template-columns: 1fr 1fr; /* 🔥 2 colonnes de taille égale */
+  gap: 12px; 
+  z-index: 10; 
+  margin-top: 15vh;
+  justify-items: center;
 
   /* 🔥 SCALE FIX: Adapte la taille des boutons */
   transform: scale(var(--ui-scale, 1));
   transform-origin: center center;
 }
 
+/* BOUTON PLAY (Prend les deux colonnes) */
+#btnPlay { 
+  grid-column: 1 / -1; /* 🔥 Oblige le bouton à s'étirer sur toute la ligne */
+  width: 100%; /* Remplit l'espace */
+  background: #fff; color: #000; font-size: 18px; padding: 18px 0; 
+  box-shadow: 0 0 20px rgba(255,255,255,0.25); 
+}
+
+#btnPlay:hover { 
+  background: #d4eeff; transform: scale(1.05); box-shadow: 0 0 50px rgba(200, 230, 255, 0.6); 
+}
+
+/* AUTRES BOUTONS (Vont se placer 2 par 2 en dessous) */
 .menuBtn {
-  min-width: 220px; padding: 14px 0;
-  font-family: var(--font-title); font-size: 14px; font-weight: 900; 
-  letter-spacing: 3px; text-transform: uppercase;
+  min-width: 140px; /* 🔥 RÉDUIT (avant 220px) pour tenir côte à côte sur mobile */
+  width: 100%;
+  padding: 12px 0; /* Légèrement affiné */
+  font-family: var(--font-title); font-size: 12px; font-weight: 900; 
+  letter-spacing: 2px; text-transform: uppercase;
   color: #fff; background: rgba(6, 10, 20, 0.85);
   border: 1px solid rgba(100, 200, 255, 0.3); backdrop-filter: blur(8px);
   clip-path: polygon(15px 0, 100% 0, 100% calc(100% - 15px), calc(100% - 15px) 100%, 0 100%, 0 15px);
   cursor: pointer; transition: all 0.2s; box-shadow: 0 5px 20px rgba(0,0,0,0.5);
 }
+
 .menuBtn:hover {
   background: rgba(100, 200, 255, 0.1); border-color: #fff; transform: scale(1.05);
   box-shadow: 0 0 30px rgba(100, 200, 255, 0.2);
 }
-/* BOUTON ROULETTE (STYLE PREMIUM GOLD) */
-.roulette-btn {
+
+/* BOUTON LEADERBOARD (STYLE PREMIUM GOLD) */
+.prestige-btn {
   background: linear-gradient(135deg, rgba(255, 215, 0, 0.15), rgba(255, 140, 0, 0.15));
   border-color: #ffd700;
   color: #ffd700;
   box-shadow: 0 0 20px rgba(255, 215, 0, 0.2);
-  margin-top: 15px; /* L'écarte un peu des autres boutons */
 }
-.roulette-btn:hover {
+
+.prestige-btn:hover {
   background: linear-gradient(135deg, rgba(255, 215, 0, 0.4), rgba(255, 140, 0, 0.4));
   box-shadow: 0 0 30px rgba(255, 215, 0, 0.5);
   color: #fff;
   border-color: #fff;
-}
-#btnPlay { 
-  background: #fff; color: #000; font-size: 18px; padding: 18px 0; 
-  box-shadow: 0 0 20px rgba(255,255,255,0.25); 
-}
-#btnPlay:hover { 
-  background: #d4eeff; transform: scale(1.05); box-shadow: 0 0 50px rgba(200, 230, 255, 0.6); 
 }
 
 /* STATS MENU (On applique aussi le SCALE ici) */
@@ -1157,6 +1172,7 @@ body.playing .menuParticles {
     transition: filter 0.5s;
 }
 .neon-wheel.spinning .mw-labels { filter: none !important; }
+
 </style>
 
 </head>
@@ -1211,15 +1227,19 @@ body.playing .menuParticles {
       </div>
     </div>
 
-    <div id="menuButtons">
-      <button id="btnPlay" class="menuBtn">PLAY</button>
-      <button id="btnShop" class="menuBtn">SKIN SHOP</button>
-      <button id="btnOptions" class="menuBtn">SETTINGS</button>
-      
-      <button onclick="openRoulette()" class="menuBtn" style="margin-top:15px; background: linear-gradient(135deg, rgba(255,215,0,0.15), rgba(255,140,0,0.15)); border-color: #ffd700; color: #ffd700; box-shadow: 0 0 20px rgba(255,215,0,0.2);">
-        🎰 LUCKY SPIN <span id="rouletteStatus" style="font-size:10px; opacity:0.8; margin-left:5px;"></span>
-      </button>
-    </div>
+<div id="menuButtons">
+  <button id="btnPlay" class="menuBtn">PLAY</button>
+  
+  <button id="btnLeaderboard" class="menuBtn prestige-btn">🏆 HIGH SCORES</button>
+  <button id="btnShop" class="menuBtn">SKIN SHOP</button>
+  
+  <button id="btnOptions" class="menuBtn">SETTINGS</button>
+  <button onclick="openRoulette()" class="menuBtn prestige-btn">
+    🎰 LUCKY SPIN <span id="rouletteStatus" style="font-size:9px; opacity:0.8; margin-left:2px; display:block;"></span>
+  </button>
+</div>
+
+</div>
 
     <div id="shopPanel"></div>
 
@@ -1281,7 +1301,7 @@ body.playing .menuParticles {
     </div>
   </div>
 
-  <div id="optionsPanel">
+ <div id="optionsPanel">
     <div class="optionsBox">
       <h2>SETTINGS</h2>
       <div class="optRow">
@@ -1295,6 +1315,9 @@ body.playing .menuParticles {
       <div class="optRow">
         <label><input id="optMute" type="checkbox"> 🔇 Mute</label>
       </div>
+      
+      <button id="btnPrivacy" class="menuBtn" style="width:100%; margin-top:15px; margin-bottom:10px; font-size:12px; background:rgba(0, 240, 255, 0.1); border-color:#00f0ff; color:#00f0ff;">🛡️ PRIVACY & ADS</button>
+      
       <button id="optBack" class="menuBtn">BACK</button>
     </div>
   </div>
@@ -2981,6 +3004,23 @@ function handleGameOver() {
     Player.coins = coinsBank;
     Player.bestScore = bestScore;
     Player.save();
+
+    // ==========================================
+    // 🏆 APPLE GAME CENTER : ENVOI DU SCORE
+    // ==========================================
+    if (newRecordThisRun && bestScore > 0) {
+        // On vérifie que GameConnect est bien chargé
+        const GameConnect = window.Capacitor && window.Capacitor.Plugins.GameConnect;
+        if (GameConnect) {
+            console.log("🍏 Envoi du nouveau record au Game Center :", bestScore);
+            GameConnect.submitScore({
+                leaderboardID: "galaxyrush.bestscore", // ⚠️ L'ID que tu as créé sur App Store Connect
+                totalScoreAmount: bestScore
+            }).catch(e => console.warn("Erreur Game Center :", e));
+        }
+    }
+    // ==========================================
+
     if (typeof updateMenuStats === 'function') updateMenuStats();
 
     // Remplissage UI Game Over
@@ -3002,7 +3042,7 @@ function handleGameOver() {
         }
     }
 
-    // --- 🏆 GESTION NEW RECORD ---
+    // --- 🏆 GESTION NEW RECORD UI ---
     const nrEl = document.getElementById("newRecord");
     if (nrEl) {
         if (newRecordThisRun) {
@@ -7904,6 +7944,38 @@ async function scheduleFreeSpinNotification() {
         console.warn("Erreur Notification:", e);
     }
 }
+  const GameConnect = window.Capacitor && window.Capacitor.Plugins.GameConnect;
+
+async function initGameCenter() {
+    if (!GameConnect) return;
+    try {
+        await GameConnect.signIn();
+        console.log("🍏 Connecté à Apple Game Center !");
+    } catch (e) {
+        console.warn("Connexion Game Center ignorée ou échouée :", e);
+    }
+}
+
+// Lancement au démarrage
+document.addEventListener('deviceready', initGameCenter, false);
+if (window.Capacitor) initGameCenter();
+  async function showLeaderboard() {
+    const GameConnect = window.Capacitor && window.Capacitor.Plugins.GameConnect;
+    if (!GameConnect) {
+        console.warn("GameConnect non disponible (sur navigateur Web ?)");
+        return;
+    }
+    
+    try {
+        console.log("🍏 Ouverture du Leaderboard Game Center...");
+        // Assure-toi que l'ID correspond exactement à celui d'App Store Connect
+        await GameConnect.showLeaderboard({
+            leaderboardID: "galaxyrush.bestscore" 
+        });
+    } catch (e) {
+        console.error("Erreur lors de l'ouverture du Leaderboard :", e);
+    }
+}
 /* =========================================================
    🚀 DOM READY FINAL (ANTI-GHOST CLICK + STARTRUN SAFE)
 ========================================================= */
@@ -8042,9 +8114,12 @@ if (btnPlay) {
     }
   };
 
-  bindBtn("optBack", () => setUIState("menu"));
+bindBtn("optBack", () => setUIState("menu"));
   bindBtn("menuBtn", () => goToMenu());
-
+  bindBtn("btnPrivacy", () => revokeConsent()); // AJOUTE CETTE LIGNE
+bindBtn("btnLeaderboard", () => {
+    if (!globalInputLock) showLeaderboard();
+});
   // =========================
   // 6️⃣ RESTART (ANTI-SPAM)
   // =========================
@@ -8182,79 +8257,76 @@ function hardRefreshCanvas() {
     }
 }
 /* =========================================================
-    📺 ADMOB MANAGER V7.0 (SÉCURITÉ RÉCOMPENSE iOS/ANDROID)
+    📺 ADMOB MANAGER V8.0 (RGPD + ATT + SÉCURITÉ RÉCOMPENSE)
 ========================================================= */
 const AdMob = window.Capacitor && window.Capacitor.Plugins.AdMob;
 
 const AD_IDS = {
-    // Ici, on met l'ID du bloc que tu as créé comme "Interstitiel"
     interstitial: 'ca-app-pub-2409581870901167/2901010676', 
-
-    // Ici, on met l'ID du bloc que tu as créé comme "Avec récompense" (ton Shop)
     reward:       'ca-app-pub-2409581870901167/2170712506', 
-
     isTesting:    false
 };
 
-// 🛡️ Flags de contrôle global
+let canRequestAds = false;
+let isPersonalized = false;
 let rewardGranted = false; 
-let isAdMobInitialized = false; 
 
 // 💰 LE GESTIONNAIRE DE RÉCOMPENSE
 const handleReward = (reward) => {
-    console.log("📬 AdMob : Signal de récompense reçu du serveur !");
+    console.log("📬 AdMob : Signal de récompense reçu !");
     rewardGranted = true; 
 };
 
-// --- 1. INITIALISATION ---
+// --- 1. INITIALISATION & CONSENTEMENT ---
 async function initAds() {
-    if (!AdMob || isAdMobInitialized) return;
-    isAdMobInitialized = true;
+    if (!AdMob) return;
 
     try {
-        await AdMob.initialize();
-
-        // 🍎 iOS ATT (Demande d'autorisation de suivi)
-        if (window.Capacitor.getPlatform() === 'ios') {
-            try { await AdMob.requestTrackingAuthorization(); } catch(e){}
+        console.log("AdMob: Vérification du consentement RGPD/ATT...");
+        let consentInfo = await AdMob.requestConsentInfo();
+        
+        if (!consentInfo.canRequestAds && consentInfo.isConsentFormAvailable) {
+            consentInfo = await AdMob.showConsentForm();
         }
 
-        // Préparation initiale
-        await AdMob.prepareInterstitial({ adId: AD_IDS.interstitial, isTesting: AD_IDS.isTesting });
-        await AdMob.prepareRewardVideoAd({ adId: AD_IDS.reward, isTesting: AD_IDS.isTesting });
+        canRequestAds = !!consentInfo.canRequestAds;
+        const consentStatus = consentInfo.status || "UNKNOWN";
+        isPersonalized = (consentStatus === "OBTAINED" || consentStatus === "NOT_REQUIRED");
 
-        // 🎯 ÉCOUTEURS DE RÉCOMPENSE (Noms officiels Capacitor V8)
-        // onRewardedVideoAdReward est le plus fiable sur Android/iOS
+        if (!canRequestAds) {
+            console.warn("AdMob: Impossible de requêter des pubs (RGPD refusé ou ignoré).");
+            return; 
+        }
+
+        // Initialisation : Gère aussi l'alerte ATT native d'Apple en arrière-plan
+        await AdMob.initialize({ requestTrackingAuthorization: true });
+        console.log("AdMob: SDK Initialisé !");
+
+        await AdMob.prepareInterstitial({ adId: AD_IDS.interstitial, isTesting: AD_IDS.isTesting, npa: !isPersonalized });
+        await AdMob.prepareRewardVideoAd({ adId: AD_IDS.reward, isTesting: AD_IDS.isTesting, npa: !isPersonalized });
+
         AdMob.addListener('onRewardedVideoAdReward', handleReward);
 
-        // 📺 GESTION DE LA FERMETURE REWARD
+        // 📺 FERMETURE REWARD (AVEC TON DÉLAI DE 1200ms POUR iOS)
         AdMob.addListener('onRewardedVideoAdDismissed', () => {
             console.log("📺 AdMob : Fenêtre de pub fermée.");
-
-            /* ATTENTION iOS : La récompense arrive parfois 100ms APRÈS le dismiss.
-               On attend 500ms avant de vérifier pour être sûr.
-            */
             setTimeout(() => {
                 if (rewardGranted) {
                     console.log("✅ RÉCOMPENSE DISTRIBUÉE !");
-                    if (window.pendingRewardSuccess) {
-                        window.pendingRewardSuccess();
-                    }
+                    if (window.pendingRewardSuccess) window.pendingRewardSuccess();
                 } else {
-                    console.log("❌ Aucune récompense validée par le serveur.");
-                    if (window.pendingRewardFail) {
-                        window.pendingRewardFail();
-                    }
+                    console.log("❌ Aucune récompense validée.");
+                    if (window.pendingRewardFail) window.pendingRewardFail();
                 }
 
-                // 🧹 RESET pour la prochaine pub
                 rewardGranted = false;
                 window.pendingRewardSuccess = null;
                 window.pendingRewardFail = null;
 
-                // Rafraîchissement du jeu et préchargement
                 if (typeof hardRefreshCanvas === 'function') hardRefreshCanvas();
-                AdMob.prepareRewardVideoAd({ adId: AD_IDS.reward, isTesting: AD_IDS.isTesting });
+                if (canRequestAds) {
+                    AdMob.prepareRewardVideoAd({ adId: AD_IDS.reward, isTesting: AD_IDS.isTesting, npa: !isPersonalized });
+                }
             }, 1200); 
         });
 
@@ -8262,87 +8334,96 @@ async function initAds() {
         AdMob.addListener('onInterstitialAdDismissed', () => {
             console.log("📺 AdMob : Interstitiel fermé.");
             if (typeof hardRefreshCanvas === 'function') hardRefreshCanvas();
-            AdMob.prepareInterstitial({ adId: AD_IDS.interstitial, isTesting: AD_IDS.isTesting });
+            if (canRequestAds) {
+                AdMob.prepareInterstitial({ adId: AD_IDS.interstitial, isTesting: AD_IDS.isTesting, npa: !isPersonalized });
+            }
         });
 
     } catch (e) { 
         console.warn("AdMob Init Fail:", e); 
-        isAdMobInitialized = false; 
     }
 }
 
-// --- 2. FONCTIONS UTILES ---
-async function showBanner() { return; } // Non utilisé
-async function hideBanner() { return; } // Non utilisé
+// --- 2. RÉVOCATION RGPD (LE BOUTON OPTIONS) ---
+async function revokeConsent() {
+    if (!AdMob) return;
+    try {
+        console.log("AdMob: Réinitialisation du consentement...");
+        if (typeof setUIState === "function") setUIState("menu"); 
+        await AdMob.resetConsentInfo();
+        await initAds(); // Relance le popup
+    } catch (e) {
+        console.warn("Erreur revokeConsent:", e);
+    }
+}
 
 // --- 3. INTERSTITIAL (GAME OVER) ---
 async function showGameOverAd() {
-    if (!AdMob) return;
+    if (!AdMob || !canRequestAds) return;
     try {
         await AdMob.showInterstitial();
     } catch (e) {
-        console.warn("Interstital Fail:", e);
-        // On tente de re-préparer si ça a échoué
-        AdMob.prepareInterstitial({ adId: AD_IDS.interstitial, isTesting: AD_IDS.isTesting });
+        if (canRequestAds) AdMob.prepareInterstitial({ adId: AD_IDS.interstitial, isTesting: AD_IDS.isTesting, npa: !isPersonalized });
     }
 }
 
 // --- 4. REWARD (REVIVE & SHOP) ---
 async function showRewardedAd(onSuccess, onFail) {
     if (!AdMob) { 
-        console.log("💻 Mode Web: Simulation Succès");
         if(onSuccess) onSuccess(); 
         return; 
     }
+    if (!canRequestAds) {
+        if(onFail) onFail();
+        return;
+    }
 
     try {
-        rewardGranted = false; // Reset avant affichage
+        rewardGranted = false; 
         window.pendingRewardSuccess = onSuccess;
         window.pendingRewardFail = onFail; 
-        
-        console.log("🎬 Lancement de la vidéo...");
         await AdMob.showRewardVideoAd();
     } catch (e) {
-        console.warn("Reward Show Fail:", e);
         if(onFail) onFail();
         window.pendingRewardSuccess = null;
         window.pendingRewardFail = null;
-        // Re-préparation en cas d'échec
-        AdMob.prepareRewardVideoAd({ adId: AD_IDS.reward, isTesting: AD_IDS.isTesting });
+        if (canRequestAds) AdMob.prepareRewardVideoAd({ adId: AD_IDS.reward, isTesting: AD_IDS.isTesting, npa: !isPersonalized });
     }
 }
 
-// Interface de sécurité
-window.isAdSystemReady = function() { return isAdMobInitialized; };
+window.isAdSystemReady = function() { return canRequestAds; };
 
-// 🚀 LANCEMENT AUTOMATIQUE
-if (window.Capacitor) {
-    initAds();
-} else {
-    document.addEventListener('deviceready', initAds, false);
+// Lancement automatique
+document.addEventListener('deviceready', initAds, false);
+if (window.Capacitor) initAds();
+  // Si tu es dans un fichier JS modulaire, importe le plugin :
+// import { FirebaseAnalytics } from '@capacitor-community/firebase-analytics';
+
+// Si tu es directement dans index.html (sans bundler), utilise window.Capacitor.Plugins :
+const FirebaseAnalytics = window.Capacitor && window.Capacitor.Plugins.FirebaseAnalytics;
+
+async function initNativeAnalytics() {
+    if (!FirebaseAnalytics) return;
+
+    try {
+        // Optionnel : Demande l'autorisation de suivi sur iOS si nécessaire
+        // await FirebaseAnalytics.setCollectionEnabled({ enabled: true });
+
+        // Envoie l'événement d'ouverture !
+        await FirebaseAnalytics.logEvent({
+            name: "app_open",
+            params: {}
+        });
+
+        console.log("🚀 Firebase Analytics NATIF activé !");
+    } catch (e) {
+        console.warn("Erreur Analytics Natif:", e);
+    }
 }
-</script>
-<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-analytics-compat.js"></script>
 
-<script>
-const firebaseConfig = {
-  apiKey: "AIzaSyAMdex8DfWS5tspB7daDUMQH4eWTdr9AwI",
-  authDomain: "galaxy-rush-9e34e.firebaseapp.com",
-  projectId: "galaxy-rush-9e34e",
-  storageBucket: "galaxy-rush-9e34e.firebasestorage.app",
-  messagingSenderId: "133575459059",
-  appId: "1:133575459059:web:34b7a35cefb4fd33b73786",
-  measurementId: "G-8QKV6KV1B0"
-};
-
-if (typeof firebase !== 'undefined') {
-  firebase.initializeApp(firebaseConfig);
-  firebase.analytics();
-  firebase.analytics().logEvent("app_open");
-
-  console.log("Firebase actif");
-}
+// Lancer au démarrage
+document.addEventListener('deviceready', initNativeAnalytics, false);
+if (window.Capacitor) initNativeAnalytics();
 </script>
 </body>
 </html>   
