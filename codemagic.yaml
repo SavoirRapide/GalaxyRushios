@@ -20,8 +20,8 @@ workflows:
       - name: Install dependencies
         script: |
           npm install
-          # 🔥 ON INSTALLE LE PLUGIN MANQUANT ICI 🔥
-          npm install capacitor-game-connect
+          # Installation explicite pour être sûr que le binaire est là
+          npm install @capacitor/cli capacitor-game-connect
           npm uninstall @capacitor-firebase/app || true
 
       - name: Build web assets
@@ -30,7 +30,8 @@ workflows:
 
       - name: Sync Capacitor (SPM Mode)
         script: |
-          npx cap sync ios
+          # 🔥 FIX : On utilise le nom complet 'capacitor' au lieu de 'cap'
+          npx capacitor sync ios
 
       - name: Configure AdMob & Version
         script: |
@@ -74,7 +75,7 @@ workflows:
       - name: Build IPA
         script: |
           cd ios/App
-          # On compile le .xcodeproj avec nettoyage pour SPM
+          # On nettoie et on build le projet SPM
           xcode-project build-ipa --project "App.xcodeproj" --scheme App --clean
 
     artifacts:
