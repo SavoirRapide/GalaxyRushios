@@ -17,24 +17,18 @@ workflows:
         ADMOB_APP_ID: "ca-app-pub-2409581870901167~7654643904"
 
     scripts:
-      - name: Install and Sync Capacitor
+      - name: Install and Sync
         script: |
-          echo "1. Nettoyage des dossiers..."
-          rm -rf node_modules package-lock.json ios/App/CapApp-SPM
-          
-          echo "2. Installation propre..."
-          # On installe les dépendances du package.json
-          npm install
-          
-          echo "3. Synchronisation native..."
-          # Une fois installée, cette commande ne ratera plus
+          # On installe tout proprement (sans le lock pollué)
+          npm install --legacy-peer-deps
+          # On synchronise le code natif
           npx capacitor sync ios
 
       - name: Build web assets
         script: |
           npm run build || echo "Skip build"
 
-      - name: Configure AdMob & Version
+      - name: Configure Info.plist
         script: |
           cd ios/App/App
           /usr/libexec/PlistBuddy -c "Delete :GADApplicationIdentifier" Info.plist || true
@@ -42,10 +36,10 @@ workflows:
           /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString 1.0.6" Info.plist
           /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $BUILD_NUMBER" Info.plist
 
-      - name: Force Game Center Entitlements
+      - name: Enable Game Center Capability
         script: |
           cd ios/App
-          # Création du fichier indispensable
+          # On crée le fichier d'entitlements
           cat << 'EOF' > App/App.entitlements
           <?xml version="1.0" encoding="UTF-8"?>
           <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -56,19 +50,16 @@ workflows:
           </dict>
           </plist>
           EOF
-
-          # Injection dans le projet Xcode
+          
+          # On l'injecte dans le projet Xcode pour que TestFlight l'accepte
           ruby -e "
           require 'xcodeproj'
           project = Xcodeproj::Project.open('App.xcodeproj')
           target = project.targets.find { |t| t.name == 'App' }
-          if target
-            target.build_configurations.each do |config|
-              config.build_settings['CODE_SIGN_ENTITLEMENTS'] = 'App/App.entitlements'
-            end
-            project.save
-            puts '✅ Game Center injecté'
+          target.build_configurations.each do |config|
+            config.build_settings['CODE_SIGN_ENTITLEMENTS'] = 'App/App.entitlements'
           end
+          project.save
           "
 
       - name: Set up code signing
@@ -78,15 +69,11 @@ workflows:
       - name: Build IPA
         script: |
           cd ios/App
-          # On résout les dépendances Swift (pour AdMob)
           xcodebuild -resolvePackageDependencies -project App.xcodeproj -scheme App
-          # On lance le build final
           xcode-project build-ipa --project "App.xcodeproj" --scheme App --clean
 
     artifacts:
       - ios/build/ios/ipa/*.ipa
-      - "*.ipa"
-
     publishing:
       app_store_connect:
         auth: integration
