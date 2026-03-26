@@ -26,14 +26,10 @@ workflows:
         script: |
           npm run build || echo "Skip build"
 
-      # 🔥 LE FIX EST ICI : ON FORCE LA CRÉATION DU WORKSPACE
-      - name: Sync and Install Pods
+      - name: Sync Capacitor (SPM Mode)
         script: |
-          npx cap cleanup ios
+          # Seulement sync, c'est suffisant et parfait pour SPM
           npx cap sync ios
-          echo "Installation forcée des dépendances natives (CocoaPods)..."
-          cd ios/App
-          pod install --repo-update
 
       - name: Configure AdMob & Version
         script: |
@@ -79,14 +75,11 @@ workflows:
         script: |
           xcode-project use-profiles
 
-      # 🚀 BUILD SIMPLIFIÉ ET ROBUSTE
-      - name: Build IPA
+      - name: Build IPA (SPM Project)
         script: |
           cd ios/App
-          echo "Contenu du dossier (vérification de la présence de App.xcworkspace) :"
-          ls -la
-          # Le pod install a généré le workspace, on le compile direct
-          xcode-project build-ipa --workspace "App.xcworkspace" --scheme App
+          # On compile directement le .xcodeproj, car c'est la norme avec Swift Package Manager !
+          xcode-project build-ipa --project "App.xcodeproj" --scheme App
 
     artifacts:
       - ios/build/ios/ipa/*.ipa
