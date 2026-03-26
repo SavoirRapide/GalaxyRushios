@@ -39,19 +39,38 @@ workflows:
           /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString 1.0.6" Info.plist
           /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $BUILD_NUMBER" Info.plist
 
-      # ✅ LA SOLUTION PROPRE (SANS CONFLIT DE SIGNATURE)
-      - name: Enable Game Center Capability
+      - name: Fix Game Center Entitlements
         script: |
           cd ios/App
+          echo "1. Création du fichier App.entitlements..."
+          cat << 'EOF' > App/App.entitlements
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+              <key>com.apple.developer.game-center</key>
+              <true/>
+          </dict>
+          </plist>
+          EOF
+          
+          echo "2. Injection UNIQUEMENT sur le target App..."
           ruby -e "
           require 'xcodeproj'
           project = Xcodeproj::Project.open('App.xcodeproj')
-          target = project.targets.first
+          # On cherche spécifiquement la cible principale
+          target = project.targets.find { |t| t.name == 'App' }
           
-          # Ajoute la capacité proprement dans les build settings
-          target.add_capability('GameCenter')
-          
-          project.save
+          if target
+            target.build_configurations.each do |config|
+              config.build_settings['CODE_SIGN_ENTITLEMENTS'] = 'App/App.entitlements'
+            end
+            project.save
+            puts '✅ Entitlements injectés avec succès dans le target App'
+          else
+            puts '❌ Erreur : Target App non trouvé'
+            exit 1
+          end
           "
 
       - name: Set up code signing
