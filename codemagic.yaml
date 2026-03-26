@@ -19,13 +19,15 @@ workflows:
     scripts:
       - name: Install and Sync Capacitor
         script: |
-          echo "1. Nettoyage..."
+          echo "1. Nettoyage des dossiers..."
           rm -rf node_modules package-lock.json ios/App/CapApp-SPM
           
-          echo "2. Installation des dépendances..."
-          npm install --legacy-peer-deps
+          echo "2. Installation propre..."
+          # On installe les dépendances du package.json
+          npm install
           
-          echo "3. Synchronisation Capacitor..."
+          echo "3. Synchronisation native..."
+          # Une fois installée, cette commande ne ratera plus
           npx capacitor sync ios
 
       - name: Build web assets
@@ -40,10 +42,10 @@ workflows:
           /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString 1.0.6" Info.plist
           /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $BUILD_NUMBER" Info.plist
 
-      - name: Force Game Center Capability
+      - name: Force Game Center Entitlements
         script: |
           cd ios/App
-          # Création du fichier indispensable pour Apple
+          # Création du fichier indispensable
           cat << 'EOF' > App/App.entitlements
           <?xml version="1.0" encoding="UTF-8"?>
           <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -65,7 +67,7 @@ workflows:
               config.build_settings['CODE_SIGN_ENTITLEMENTS'] = 'App/App.entitlements'
             end
             project.save
-            puts '✅ Game Center injecté dans Xcode'
+            puts '✅ Game Center injecté'
           end
           "
 
@@ -76,9 +78,9 @@ workflows:
       - name: Build IPA
         script: |
           cd ios/App
-          # Résolution des paquets Swift (indispensable pour SPM)
+          # On résout les dépendances Swift (pour AdMob)
           xcodebuild -resolvePackageDependencies -project App.xcodeproj -scheme App
-          # Compilation finale
+          # On lance le build final
           xcode-project build-ipa --project "App.xcodeproj" --scheme App --clean
 
     artifacts:
