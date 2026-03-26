@@ -17,24 +17,32 @@ workflows:
         ADMOB_APP_ID: "ca-app-pub-2409581870901167~7654643904"
 
     scripts:
-      - name: Install dependencies
+
+      # 🔥 INSTALL PROPRE (RESET TOTAL)
+      - name: Clean Install Dependencies
         script: |
-          # On force l'installation propre
+          rm -rf node_modules
+          rm -f package-lock.json
+
           npm install
-          # On s'assure que les outils Capacitor sont bien là physiquement
-          npm install @capacitor/cli @capacitor/core capacitor-game-connect
+
+          # Capacitor propre (versions cohérentes)
+          npm install @capacitor/core @capacitor/cli @capacitor/ios
+
+          # Nettoyage conflit
           npm uninstall @capacitor-firebase/app || true
 
+      # 🔧 BUILD WEB
       - name: Build web assets
         script: |
           npm run build || echo "Skip build"
 
-      - name: Sync Capacitor (Force Mode)
+      # ⚙️ SYNC CAPACITOR (SPM)
+      - name: Sync Capacitor
         script: |
-          # 🔥 LA COMMANDE ULTIME : npm exec --package
-          # Cela évite de chercher le fichier dans .bin, npm gère tout seul
-          npm exec --package @capacitor/cli capacitor sync ios
+          npx cap sync ios
 
+      # 📱 CONFIG APP (AdMob + version)
       - name: Configure AdMob & Version
         script: |
           cd ios/App/App
@@ -43,9 +51,11 @@ workflows:
           /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString 1.0.6" Info.plist
           /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $BUILD_NUMBER" Info.plist
 
-      - name: Fix Game Center Entitlements
+      # 🎮 GAME CENTER
+      - name: Enable Game Center
         script: |
           cd ios/App
+
           cat << 'EOF' > App/App.entitlements
           <?xml version="1.0" encoding="UTF-8"?>
           <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -56,28 +66,33 @@ workflows:
           </dict>
           </plist>
           EOF
-          
+
           ruby -e "
           require 'xcodeproj'
           project = Xcodeproj::Project.open('App.xcodeproj')
           target = project.targets.find { |t| t.name == 'App' }
+
           if target
             target.build_configurations.each do |config|
               config.build_settings['CODE_SIGN_ENTITLEMENTS'] = 'App/App.entitlements'
             end
             project.save
-            puts '✅ Entitlements injectés'
+            puts '✅ Game Center activé'
+          else
+            puts '❌ Target App introuvable'
+            exit 1
           end
           "
 
+      # 🔐 SIGNING
       - name: Set up code signing
         script: |
           xcode-project use-profiles
 
+      # 🚀 BUILD FINAL
       - name: Build IPA
         script: |
           cd ios/App
-          # Compilation directe du projet SPM
           xcode-project build-ipa --project "App.xcodeproj" --scheme App --clean
 
     artifacts:
