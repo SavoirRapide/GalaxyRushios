@@ -20,7 +20,7 @@ workflows:
       - name: Install dependencies
         script: |
           npm install
-          # On s'assure que le plugin Game Center est présent
+          # 🔥 ON INSTALLE LE PLUGIN MANQUANT ICI 🔥
           npm install capacitor-game-connect
           npm uninstall @capacitor-firebase/app || true
 
@@ -43,7 +43,6 @@ workflows:
       - name: Fix Game Center Entitlements
         script: |
           cd ios/App
-          # On crée le fichier d'entitlements à la racine du dossier App
           cat << 'EOF' > App/App.entitlements
           <?xml version="1.0" encoding="UTF-8"?>
           <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -61,10 +60,10 @@ workflows:
           target = project.targets.find { |t| t.name == 'App' }
           if target
             target.build_configurations.each do |config|
-              # On pointe vers le fichier qu'on vient de créer
               config.build_settings['CODE_SIGN_ENTITLEMENTS'] = 'App/App.entitlements'
             end
             project.save
+            puts '✅ Entitlements injectés'
           end
           "
 
@@ -72,16 +71,10 @@ workflows:
         script: |
           xcode-project use-profiles
 
-      - name: Resolve Swift Packages
-        script: |
-          cd ios/App
-          # Étape CRITIQUE pour Xcode 16 / SPM
-          xcodebuild -resolvePackageDependencies -project App.xcodeproj -scheme App
-
       - name: Build IPA
         script: |
           cd ios/App
-          # On utilise les drapeaux de nettoyage pour éviter les vieux résidus
+          # On compile le .xcodeproj avec nettoyage pour SPM
           xcode-project build-ipa --project "App.xcodeproj" --scheme App --clean
 
     artifacts:
