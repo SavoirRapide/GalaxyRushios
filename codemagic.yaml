@@ -19,19 +19,21 @@ workflows:
     scripts:
       - name: Install dependencies
         script: |
-          # On installe tout d'un coup proprement
-          npm install @capacitor/cli @capacitor/core @capacitor/ios @capacitor-community/admob capacitor-game-connect
+          # On force l'installation propre
+          npm install
+          # On s'assure que les outils Capacitor sont bien là physiquement
+          npm install @capacitor/cli @capacitor/core capacitor-game-connect
           npm uninstall @capacitor-firebase/app || true
 
       - name: Build web assets
         script: |
           npm run build || echo "Skip build"
 
-      - name: Sync Capacitor (SPM Mode)
+      - name: Sync Capacitor (Force Mode)
         script: |
-          # 🔥 FIX : On appelle le binaire directement dans node_modules
-          # C'est la solution ultime quand npx bug
-          ./node_modules/.bin/capacitor sync ios
+          # 🔥 LA COMMANDE ULTIME : npm exec --package
+          # Cela évite de chercher le fichier dans .bin, npm gère tout seul
+          npm exec --package @capacitor/cli capacitor sync ios
 
       - name: Configure AdMob & Version
         script: |
@@ -75,6 +77,7 @@ workflows:
       - name: Build IPA
         script: |
           cd ios/App
+          # Compilation directe du projet SPM
           xcode-project build-ipa --project "App.xcodeproj" --scheme App --clean
 
     artifacts:
