@@ -9,7 +9,7 @@ workflows:
 
     environment:
       xcode: latest
-      node: 20 # 🟢 On reste sur la 20 (LTS) pour la stabilité des chemins
+      node: 20
       ios_signing:
         distribution_type: app_store
         bundle_identifier: com.a2games.galaxyrush
@@ -17,22 +17,17 @@ workflows:
         ADMOB_APP_ID: "ca-app-pub-2409581870901167~7654643904"
 
     scripts:
-      # 🔥 ÉTAPE ATOMIQUE : INSTALL + SYNC
       - name: Install and Sync Capacitor
         script: |
-          echo "1. Nettoyage profond..."
+          echo "1. Nettoyage..."
           rm -rf node_modules package-lock.json ios/App/CapApp-SPM
           
-          echo "2. Installation des dépendances..."
-          # On installe tout d'un coup avec --legacy-peer-deps pour éviter les blocages
+          echo "2. Installation des dépendances (Correction du nom du plugin)..."
           npm install --legacy-peer-deps
           
-          echo "3. Vérification des fichiers..."
-          ls node_modules/@capacitor/ios/package.json || echo "⚠️ iOS plugin manquant !"
-          
-          echo "4. Synchronisation forcée..."
-          # On utilise le chemin direct pour être SÛR à 100% d'utiliser la bonne version
-          node node_modules/@capacitor/cli/bin/capacitor sync ios --no-install
+          echo "3. Synchronisation..."
+          # On utilise npx maintenant que l'install va réussir
+          npx capacitor sync ios
 
       - name: Build web assets
         script: |
@@ -78,9 +73,7 @@ workflows:
       - name: Build IPA
         script: |
           cd ios/App
-          # On force Xcode à voir les nouveaux plugins SPM
           xcodebuild -resolvePackageDependencies -project App.xcodeproj -scheme App
-          # Build final
           xcode-project build-ipa --project "App.xcodeproj" --scheme App --clean
 
     artifacts:
