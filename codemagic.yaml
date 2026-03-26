@@ -78,17 +78,16 @@ workflows:
       - name: Build IPA
         script: |
           cd ios
-          # Recherche du workspace
-          WORKSPACE=$(find . -name "*.xcworkspace" -not -path "*/.*" | head -n 1)
+          
+          # On cherche le VRAI workspace en excluant les dossiers internes d'Xcode
+          WORKSPACE=$(find . -maxdepth 2 -name "*.xcworkspace" | grep -v ".xcodeproj" | head -n 1)
 
           if [ -n "$WORKSPACE" ]; then
-            echo "✅ Workspace trouvé : $WORKSPACE"
+            echo "✅ VRAI Workspace trouvé : $WORKSPACE"
             xcode-project build-ipa --workspace "$WORKSPACE" --scheme App
           else
-            echo "⚠️ Aucun workspace trouvé -> fallback .xcodeproj"
-            # On cherche le projet si le workspace est absent
-            PROJECT=$(find . -name "*.xcodeproj" -not -path "*/.*" | head -n 1)
-            xcode-project build-ipa --project "$PROJECT" --scheme App
+            echo "⚠️ Aucun workspace CocoaPods trouvé -> fallback sur .xcodeproj"
+            xcode-project build-ipa --project "App/App.xcodeproj" --scheme App
           fi
 
     artifacts:
