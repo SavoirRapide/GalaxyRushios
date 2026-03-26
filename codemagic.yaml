@@ -9,7 +9,7 @@ workflows:
 
     environment:
       xcode: latest
-      node: 22
+      node: 20 # 🟢 Retour à la stabilité LTS
       ios_signing:
         distribution_type: app_store
         bundle_identifier: com.a2games.galaxyrush
@@ -17,32 +17,24 @@ workflows:
         ADMOB_APP_ID: "ca-app-pub-2409581870901167~7654643904"
 
     scripts:
-
-      # 🔥 INSTALL PROPRE (RESET TOTAL)
-      - name: Clean Install Dependencies
+      # 🔥 INSTALLATION NETTE
+      - name: Install dependencies
         script: |
-          rm -rf node_modules
-          rm -f package-lock.json
-
           npm install
-
-          # Capacitor propre (versions cohérentes)
-          npm install @capacitor/core @capacitor/cli @capacitor/ios
-
-          # Nettoyage conflit
+          npm install @capacitor/cli @capacitor/core @capacitor/ios capacitor-game-connect
           npm uninstall @capacitor-firebase/app || true
 
-      # 🔧 BUILD WEB
       - name: Build web assets
         script: |
           npm run build || echo "Skip build"
 
-      # ⚙️ SYNC CAPACITOR (SPM)
+      # ⚙️ SYNC CAPACITOR (La commande qui ne peut pas rater)
       - name: Sync Capacitor
         script: |
-          npx cap sync ios
+          # On lui donne le nom exact du package pour éviter l'erreur d'exécutable
+          npx @capacitor/cli sync ios
 
-      # 📱 CONFIG APP (AdMob + version)
+      # 📱 CONFIG APP
       - name: Configure AdMob & Version
         script: |
           cd ios/App/App
@@ -51,11 +43,10 @@ workflows:
           /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString 1.0.6" Info.plist
           /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $BUILD_NUMBER" Info.plist
 
-      # 🎮 GAME CENTER
+      # 🎮 GAME CENTER (C'est là que ton package.json va briller)
       - name: Enable Game Center
         script: |
           cd ios/App
-
           cat << 'EOF' > App/App.entitlements
           <?xml version="1.0" encoding="UTF-8"?>
           <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -71,15 +62,11 @@ workflows:
           require 'xcodeproj'
           project = Xcodeproj::Project.open('App.xcodeproj')
           target = project.targets.find { |t| t.name == 'App' }
-
           if target
-            target.build_configurations.each do |config|
-              config.build_settings['CODE_SIGN_ENTITLEMENTS'] = 'App/App.entitlements'
-            end
+            target.build_configurations.each { |c| c.build_settings['CODE_SIGN_ENTITLEMENTS'] = 'App/App.entitlements' }
             project.save
-            puts '✅ Game Center activé'
+            puts '✅ Game Center injecté'
           else
-            puts '❌ Target App introuvable'
             exit 1
           end
           "
@@ -93,6 +80,8 @@ workflows:
       - name: Build IPA
         script: |
           cd ios/App
+          # On résout les paquets Swift avant de lancer l'IPA
+          xcodebuild -resolvePackageDependencies -project App.xcodeproj -scheme App
           xcode-project build-ipa --project "App.xcodeproj" --scheme App --clean
 
     artifacts:
