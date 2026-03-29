@@ -1230,7 +1230,7 @@ body.playing .menuParticles {
 <div id="menuButtons">
   <button id="btnPlay" class="menuBtn">PLAY</button>
   
-  <button id="btnLeaderboard" class="menuBtn prestige-btn">🏆 HIGH SCORES</button>
+  <button id="btnLeaderboard" class="menuBtn prestige-btn">🏆 TOP PLAYERS</button>
   <button id="btnShop" class="menuBtn">SKIN SHOP</button>
   
   <button id="btnOptions" class="menuBtn">SETTINGS</button>
@@ -2816,12 +2816,39 @@ function executeSpin() {
 let canContinueThisRun = true;
 let isWatchingAd = false;
 let continueTimeout = null;
+let leaderboardShownThisGameOver = false; // 🍎 SÉCURITÉ ANTI-DOUBLON
+let reviveAttempted = false; // 🛡️ SÉCURITÉ UX (Nouveau)
+
+// 🏆 FONCTION HYPE : AUTO-POPUP GAME CENTER
+function maybeShowLeaderboardAfterGameOver(delay = 800) {
+    if (leaderboardShownThisGameOver) return;
+    if (!newRecordThisRun) return;
+    if (typeof showLeaderboard !== "function") return;
+    if (isWatchingAd) return; // 🛡️ Sécurité pub
+
+    leaderboardShownThisGameOver = true;
+
+    setTimeout(() => {
+        // 🛡️ Vérifie qu'on est TOUJOURS sur l'écran Game Over
+        if (typeof uiState !== "undefined" && uiState !== "gameover") {
+            leaderboardShownThisGameOver = false; 
+            return;
+        }
+        showLeaderboard(); // Appelle ta fonction Game Center
+    }, delay);
+}
 
 function hideContinuePopup() {
     const popup = document.getElementById("continuePopup");
     if (continueTimeout) clearTimeout(continueTimeout);
     continueTimeout = null;
     if (popup) popup.style.display = "none";
+
+    // 🍏 Déclencheur du Game Center à la fermeture du Revive
+    // 🛡️ FIX UX : Ne s'ouvre pas si le joueur a cliqué sur Pub mais qu'elle a échoué
+    if (!isWatchingAd && !reviveAttempted) {
+        maybeShowLeaderboardAfterGameOver(500);
+    }
 }
 
 function showContinuePopup(durationSec = 4.0) {
@@ -2857,29 +2884,38 @@ function handleContinueAd() {
     if (isWatchingAd || !canContinueThisRun) return;
     isWatchingAd = true;
     canContinueThisRun = false; // On consomme le revive
+    reviveAttempted = true; // 🛡️ On note qu'il a tenté de regarder une pub
 
     const btn = document.getElementById("continueAdBtn");
     if (btn) btn.innerHTML = `<span class="btn-txt">LOADING AD...</span>`;
     if (continueTimeout) clearTimeout(continueTimeout);
 
-    // 🔇 COUPURE AUDIO (Le Game Over est déjà silencieux, mais double sécurité)
+    // 🔇 COUPURE AUDIO UNIQUE
     playMusic("none");
+
+    // 🚨 FIX CRITIQUE iOS : TIMEOUT SÉCURITÉ PUB (10 secondes max)
+    let adSafetyTimeout = setTimeout(() => {
+        console.warn("⚠️ Ad fallback triggered (Timeout)");
+        isWatchingAd = false;
+        hideContinuePopup();
+    }, 10000);
 
     if (typeof showRewardedAd === "function") {
         showRewardedAd(
             () => { // SUCCÈS
-                isWatchingAd = false;
+                clearTimeout(adSafetyTimeout); // On annule le timeout
                 // La musique "GAME" sera relancée dans revivePlayerAfterAd()
                 revivePlayerAfterAd();
+                isWatchingAd = false; // 🔥 FIX : Toujours APRES la résurrection !
             },
             () => { // ÉCHEC / FERMETURE SANS RÉCOMPENSE
+                clearTimeout(adSafetyTimeout); // On annule le timeout
                 isWatchingAd = false;
                 hideContinuePopup(); 
-                // On reste sur le Game Over, donc silence
-                playMusic("none");
             }
         );
     } else {
+        clearTimeout(adSafetyTimeout);
         isWatchingAd = false;
         hideContinuePopup();
     }
@@ -2897,9 +2933,6 @@ function revivePlayerAfterAd() {
         overlayGameOver.style.display = "none";
     }
 
-    // 🔥 FIX 1 : LE SECRET EST ICI
-    // On utilise ta fonction centrale ! Elle va retirer le bouclier `uiLayer`
-    // et débloquer proprement le `touchZone`.
     setUIState("playing"); 
 
     gameRunning = false; 
@@ -2949,9 +2982,14 @@ function revivePlayerAfterAd() {
 
     document.body.appendChild(resumeOverlay);
 
-    // 6. RELANCE DU JEU
+    // 6. RELANCE DU JEU (FIX ANTI DOUBLE-TOUCH iOS)
+    let resumed = false; 
+
     const resumeGame = (e) => {
-        // Empêche le clic de traverser et de faire voler le perso accidentellement dès la 1ère frame
+        if (resumed) return; // 🛡️ Empêche le double tir sur iOS
+        resumed = true;
+
+        // Empêche le clic de traverser
         if (e) { e.preventDefault(); e.stopPropagation(); }
         
         resumeOverlay.remove();
@@ -3061,6 +3099,9 @@ function handleGameOver() {
     // Affichage du popup de REVIVE par dessus (S'il est dispo)
     if (canContinueThisRun && isAdSystemReady()) {
         showContinuePopup(4.5);
+    } else {
+        // 🍏 Pas de popup revive possible → on affiche le Game Center direct si record
+        maybeShowLeaderboardAfterGameOver(1500);
     }
 }
 // ================================
@@ -6994,8 +7035,7 @@ function resetRun(){
   // 🔥 FIX OVERDRIVE COMPLET 🔥
   overdriveActive = false;
   overdriveTimer = 0; 
-  // Si tu utilises une variable 'overdriveGauge' pour le remplissage, mets-la à 0 ici aussi :
-  // overdriveGauge = 0; 
+  // if (typeof overdriveGauge !== "undefined") overdriveGauge = 0; 
 
   // --- 5. SPAWN & DIFFICULTÉ ---
   lastSpawn = -5000; 
@@ -7006,14 +7046,12 @@ function resetRun(){
   farRightCache = 0;
   farRightFrame = -1;
 
-  obstacleSpeed = 3.8; // Vitesse initiale (ou utilise paceMultiplier(0))
+  obstacleSpeed = 3.8; 
   lastType = null;
   
-  // 🔥 IMPORTANT v4.0 : On oublie l'historique de danger !
-  // Sinon le jeu peut commencer avec des trous immenses.
   recentHazards = []; 
 
-// --- 6. FX & VISUELS ---
+  // --- 6. FX & VISUELS ---
   shake = 0;
   shakeTime = 0;
   shockwave = null;
@@ -7023,11 +7061,14 @@ function resetRun(){
   dyingTimer = 0;
   dyingFromCircle = null;
 
-  // 👉 AJOUTE CETTE LIGNE ICI :
   if (typeof initSpaceJourney === "function") initSpaceJourney();
 
-  // --- 7. NEW RECORD RESET ---
+  // --- 7. NEW RECORD / REVIVE / LEADERBOARD RESET ---
   newRecordThisRun = false;
+  canContinueThisRun = true;
+  isWatchingAd = false;
+  leaderboardShownThisGameOver = false; // 🍎 Sécurité anti-doublon
+  reviveAttempted = false;              // 🍎 Sécurité UX post-pub
   
   const nrEl = document.getElementById("newRecord");
   if (nrEl) {
@@ -7042,37 +7083,30 @@ function resetRun(){
       if (UI.coins) UI.coins.textContent = "0";
       if (UI.combo) UI.combo.textContent = "1";
       
-      // FIX BARRE OVERDRIVE
       if (UI.overFill) {
-          // Astuce : on coupe la transition pour que la barre se vide INSTANTANÉMENT
           UI.overFill.style.transition = "none"; 
           UI.overFill.style.height = "0%";
-          
-          // Force le navigateur à appliquer le changement tout de suite
           void UI.overFill.offsetWidth; 
-          
-          // On remet la transition pour la prochaine fois
           UI.overFill.style.transition = ""; 
       }
       
-      // Retire l'effet "glow" si la barre était active
       if (UI.overBar) UI.overBar.classList.remove("active");
   }
 
-  // --- 9. MULTIPLIER RESET (NOUVEAU) ---
+  // --- 9. MULTIPLIER RESET ---
   if (typeof hasMultiplied !== "undefined") {
       hasMultiplied = false;
   }
   
   const finalCoinsEl = document.getElementById("finalCoins");
   if (finalCoinsEl) {
-      // On retire toutes les surcouches de style de l'animation de gain x15
       finalCoinsEl.style.color = "";
       finalCoinsEl.style.textShadow = "none";
       finalCoinsEl.style.fontSize = "";
       finalCoinsEl.style.fontWeight = "";
   }
 }
+
 /* =========================================
    START RUN (HYBRIDE : VISUEL + LOGIQUE)
 ========================================= */
@@ -7080,10 +7114,10 @@ function resetRun(){
 let _startRunLock = false;
 
 function startRun(e){
-  // 🔒 VERROU : On empêche le double-tap
+  // 🔒 VERROU : anti double-tap
   if (_startRunLock) return;
 
-  // ⏱️ ANTI-REBOND : Si on vient d'arriver sur le menu (<300ms)
+  // ⏱️ ANTI-REBOND : si on vient d'arriver sur le menu
   if (performance.now() - lastMenuEnterTS < 300) return;
 
   if (uiState === "playing" || gameState === "playing") return;
@@ -7095,7 +7129,7 @@ function startRun(e){
     e.stopPropagation();
   }
 
-  // 1. NETTOYAGE VISUEL FORCÉ (Anti-BlackScreen)
+  // 1. NETTOYAGE VISUEL FORCÉ
   const intro = document.getElementById("overlayIntro");
   if (intro){
     intro.style.display = "none";
@@ -7110,9 +7144,13 @@ function startRun(e){
   const nr = document.getElementById("newRecord");
   if (nr) nr.style.display = "none";
 
-  // 2. LOGIQUE JEU
+  // 2. LOGIQUE JEU (Sécurité Ceinture & Bretelles)
   gameOverTriggered = false;
   canContinueThisRun = true;
+  isWatchingAd = false;
+  leaderboardShownThisGameOver = false;
+  reviveAttempted = false;
+
   if (typeof hideContinuePopup === "function") hideContinuePopup();
   if (typeof stopShopPreviewLoop === "function") stopShopPreviewLoop();
   if (typeof stopMenuVideo === "function") stopMenuVideo();
@@ -7120,7 +7158,7 @@ function startRun(e){
   if (!UI?.score && typeof bindUI === "function") bindUI();
   if (!noiseCanvas && typeof initNoise === "function") initNoise();
   
-  // 🔥 ESSENTIEL : Resize immédiat pour éviter le canvas 0x0
+  // 🔥 ESSENTIEL : Resize immédiat
   if (typeof resizeCanvas === "function") resizeCanvas();
 
   // 3. LANCEMENT
@@ -7129,20 +7167,16 @@ function startRun(e){
 
   if (typeof resetRun === "function") resetRun();
   
-  // On reset les timers techniques mais PAS le temps global si pas nécessaire
+  // Reset timers techniques
   if (typeof resetLoopTimers === "function") resetLoopTimers(true);
 
   fxCalm = 1;
   gameRunning = true;
 
   if (typeof startLoop === "function") startLoop();
-  
-  // Note : On ne déverrouille PAS _startRunLock ici via timer.
-  // Il sera déverrouillé quand on retournera au Menu ou au GameOver.
 }
 
 // ================= LOOP TIMERS RESET (UNIFIÉ) =================
-// ⚠️ IMPORTANT : on ne touche pas au "renderTime" sauf quand on démarre un NOUVEAU run.
 function resetLoopTimers(hard = false){
   lastTS  = 0;
   accTime = 0;
@@ -7150,25 +7184,22 @@ function resetLoopTimers(hard = false){
   fxTick  = 0;
 
   if (hard){
-    renderTime = 0; // ✅ seulement au lancement d’un run neuf
+    renderTime = 0; 
   }
 }
 
-
-
 // ================= GAME OVER / MENU =================
 function goToMenu(){
-  _startRunLock = false;          // 🔓 RÉARMEMENT CRITIQUE
+  _startRunLock = false;          
   setUIState("menu");
   document.body.classList.remove("playing");
   gameOverTriggered = false;
 }
 
-
 function onGameOverCleanup(){
   gameRunning = false;
-  stopLoop();               // ✅ coupe RAF
-  resetLoopTimers(false);   // ✅ pas de reset renderTime ici (sinon jitter menu/fx)
+  stopLoop();               
+  resetLoopTimers(false);   
   fxCalm = 0;
 }
 
