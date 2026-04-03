@@ -3,10 +3,8 @@ workflows:
     name: Galaxy Rush iOS Build 1.0.6
     max_build_duration: 60
     instance_type: mac_mini_m2
-
     integrations:
       app_store_connect: AppStoreGalaxyRush
-
     environment:
       xcode: latest
       node: 20
@@ -15,13 +13,11 @@ workflows:
         bundle_identifier: com.a2games.galaxyrush
       vars:
         ADMOB_APP_ID: "ca-app-pub-2409581870901167~7654643904"
-
     scripts:
       - name: Install and Sync
         script: |
-          # On installe tout proprement (sans le lock pollué)
           npm install --legacy-peer-deps
-          # On synchronise le code natif
+          npm install capacitor-game-connect @capacitor-community/apple-tracking-transparency --legacy-peer-deps
           npx capacitor sync ios
 
       - name: Build web assets
@@ -31,15 +27,23 @@ workflows:
       - name: Configure Info.plist
         script: |
           cd ios/App/App
+          # AdMob
           /usr/libexec/PlistBuddy -c "Delete :GADApplicationIdentifier" Info.plist || true
           /usr/libexec/PlistBuddy -c "Add :GADApplicationIdentifier string $ADMOB_APP_ID" Info.plist
-          /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString 1.0.6" Info.plist
+          # ATT — OBLIGATOIRE sinon rejet Apple
+          /usr/libexec/PlistBuddy -c "Delete :NSUserTrackingUsageDescription" Info.plist || true
+          /usr/libexec/PlistBuddy -c "Add :NSUserTrackingUsageDescription string 'We use your data to show you personalized ads and improve your experience.'" Info.plist
+          # Game Center
+          /usr/libexec/PlistBuddy -c "Delete :UIRequiredDeviceCapabilities" Info.plist || true
+          /usr/libexec/PlistBuddy -c "Add :UIRequiredDeviceCapabilities array" Info.plist
+          /usr/libexec/PlistBuddy -c "Add :UIRequiredDeviceCapabilities:0 string gamekit" Info.plist
+          # Version
+          /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString 1.0.7" Info.plist
           /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $BUILD_NUMBER" Info.plist
 
       - name: Enable Game Center Capability
         script: |
           cd ios/App
-          # On crée le fichier d'entitlements
           cat << 'EOF' > App/App.entitlements
           <?xml version="1.0" encoding="UTF-8"?>
           <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -50,8 +54,6 @@ workflows:
           </dict>
           </plist>
           EOF
-          
-          # On l'injecte dans le projet Xcode pour que TestFlight l'accepte
           ruby -e "
           require 'xcodeproj'
           project = Xcodeproj::Project.open('App.xcodeproj')
@@ -74,6 +76,7 @@ workflows:
 
     artifacts:
       - ios/build/ios/ipa/*.ipa
+
     publishing:
       app_store_connect:
         auth: integration
