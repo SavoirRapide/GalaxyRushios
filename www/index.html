@@ -234,40 +234,32 @@ body.comboActive #combo {
 
 #galaxyBG, .menuParticles { position: absolute; inset: 0; pointer-events: none; }
 
-/* BOUTONS MENU (C'est ici qu'on applique le SCALE) */
+/* =========================================================================
+   BOUTONS MENU (C'est ici qu'on applique le SCALE)
+========================================================================= */
 #menuButtons {
   position: relative; 
-  display: grid; /* 🔥 CHANGEMENT: On passe en grille */
-  grid-template-columns: 1fr 1fr; /* 🔥 2 colonnes de taille égale */
-  gap: 12px; 
-  z-index: 10; 
-  margin-top: 15vh;
-  justify-items: center;
+  display: flex; flex-direction: column; align-items: center; gap: 12px; 
+  z-index: 10; margin-top: 15vh;
 
   /* 🔥 SCALE FIX: Adapte la taille des boutons */
   transform: scale(var(--ui-scale, 1));
   transform-origin: center center;
 }
 
-/* BOUTON PLAY (Prend les deux colonnes) */
-#btnPlay { 
-  grid-column: 1 / -1; /* 🔥 Oblige le bouton à s'étirer sur toute la ligne */
-  width: 100%; /* Remplit l'espace */
-  background: #fff; color: #000; font-size: 18px; padding: 18px 0; 
-  box-shadow: 0 0 20px rgba(255,255,255,0.25); 
-}
-
-#btnPlay:hover { 
-  background: #d4eeff; transform: scale(1.05); box-shadow: 0 0 50px rgba(200, 230, 255, 0.6); 
-}
-
-/* AUTRES BOUTONS (Vont se placer 2 par 2 en dessous) */
-.menuBtn {
-  min-width: 140px; /* 🔥 RÉDUIT (avant 220px) pour tenir côte à côte sur mobile */
+/* --- NOUVELLE DISPOSITION EN GRILLE (LIGNES) --- */
+.menu-row {
+  display: flex;
+  gap: 12px;
   width: 100%;
-  padding: 12px 0; /* Légèrement affiné */
-  font-family: var(--font-title); font-size: 12px; font-weight: 900; 
-  letter-spacing: 2px; text-transform: uppercase;
+  max-width: 320px; /* Garde la ligne compacte et alignée avec le bouton PLAY */
+  justify-content: center;
+}
+
+.menuBtn {
+  min-width: 220px; padding: 14px 0;
+  font-family: var(--font-title); font-size: 14px; font-weight: 900; 
+  letter-spacing: 3px; text-transform: uppercase;
   color: #fff; background: rgba(6, 10, 20, 0.85);
   border: 1px solid rgba(100, 200, 255, 0.3); backdrop-filter: blur(8px);
   clip-path: polygon(15px 0, 100% 0, 100% calc(100% - 15px), calc(100% - 15px) 100%, 0 100%, 0 15px);
@@ -279,19 +271,44 @@ body.comboActive #combo {
   box-shadow: 0 0 30px rgba(100, 200, 255, 0.2);
 }
 
-/* BOUTON LEADERBOARD (STYLE PREMIUM GOLD) */
-.prestige-btn {
+/* Ajustements dynamiques pour les boutons groupés (Côte à côte) */
+.menu-row .menuBtn {
+  min-width: 0; /* Écrase le min-width de 220px par défaut */
+  flex: 1; /* Partage la largeur équitablement (50/50) */
+  font-size: 12px; /* Texte légèrement réduit pour s'adapter */
+  padding: 12px 0;
+}
+
+/* BOUTON ROULETTE (STYLE PREMIUM GOLD) */
+.roulette-btn {
   background: linear-gradient(135deg, rgba(255, 215, 0, 0.15), rgba(255, 140, 0, 0.15));
   border-color: #ffd700;
   color: #ffd700;
   box-shadow: 0 0 20px rgba(255, 215, 0, 0.2);
+  margin-top: 15px; /* Écartement par défaut si utilisé seul */
 }
 
-.prestige-btn:hover {
+.roulette-btn:hover {
   background: linear-gradient(135deg, rgba(255, 215, 0, 0.4), rgba(255, 140, 0, 0.4));
   box-shadow: 0 0 30px rgba(255, 215, 0, 0.5);
   color: #fff;
   border-color: #fff;
+}
+
+/* Retire le margin-top si la roulette est intégrée dans la grille */
+.menu-row .roulette-btn {
+  margin-top: 0;
+}
+
+/* BOUTON PLAY PRINCIPAL */
+#btnPlay { 
+  background: #fff; color: #000; font-size: 18px; padding: 18px 0; 
+  box-shadow: 0 0 20px rgba(255,255,255,0.25); 
+  width: 100%; max-width: 320px; /* S'aligne parfaitement sur la largeur des lignes en dessous */
+}
+
+#btnPlay:hover { 
+  background: #d4eeff; transform: scale(1.05); box-shadow: 0 0 50px rgba(200, 230, 255, 0.6); 
 }
 
 /* STATS MENU (On applique aussi le SCALE ici) */
@@ -772,42 +789,56 @@ body.comboActive #combo {
 
 /* Carte de Score (Plus compacte pour laisser la place au bouton) */
 .gameOverCard {
-  min-width: 260px; /* Réduit (avant: 300px) */
-  padding: 25px;    /* Réduit (avant: 40px) */
-  display: flex; flex-direction: column; align-items: center; gap: 15px; /* Réduit (avant: 20px) */
+  min-width: 260px;
+  padding: 25px;
+  display: flex; flex-direction: column; align-items: center; gap: 15px;
   
   background: rgba(10, 15, 30, 0.85); 
   border: 1px solid rgba(100, 180, 255, 0.2);
-  /* Coins biseautés affinés (15px au lieu de 20px) */
   clip-path: polygon(15px 0, 100% 0, 100% calc(100% - 15px), calc(100% - 15px) 100%, 0 100%, 0 15px);
 
-  /* 🔥 SCALE FIX: On redimensionne toute la fenêtre de fin */
-  transform: scale(var(--ui-scale, 1));
-  transform-origin: center center;
+  /* ✅ zoom au lieu de transform: scale — réduit vraiment l'espace occupé */
+  zoom: var(--ui-scale, 1);
 }
 
 .gameOverTitle {
   font-family: var(--font-title); 
-  font-size: 30px; /* Réduit (avant: 38px) */
+  font-size: 36px; /* Réduit (avant: 38px) */
   font-weight: 900; margin: 0; text-transform: uppercase;
   background: linear-gradient(180deg, #fff, #ff4081); 
   -webkit-background-clip: text; -webkit-text-fill-color: transparent;
 }
-
 .gameOverStats { 
   width: 100%; display: flex; flex-direction: column; 
-  gap: 8px; /* Réduit (avant: 12px) */
+  gap: 8px;
   border-top: 1px solid rgba(255,255,255,0.1); 
-  padding: 15px 0; /* Réduit (avant: 20px) */
+  padding: 15px 0;
 }
-
 .gameOverStats p { 
-  display:flex; justify-content:space-between; 
+  display:flex; justify-content:space-between; align-items:center;
   font-family:var(--font-tech); 
-  font-size:15px; /* Réduit (avant: 18px) */
-  color:#a0b0c0; 
+  font-size: 18px;
 }
 
+.stat-label { font-size: 15px; letter-spacing: 2px; font-weight: 600; }
+
+.stat-score { color: #607080; }
+.stat-best  { color: #607080; }
+.stat-coins { color: #607080; }
+
+/* Valeurs */
+.gameOverStats p:nth-child(1) span:last-child {
+  color: #00f0ff; font-weight: 700;
+  text-shadow: 0 0 8px rgba(0, 240, 255, 0.5);
+}
+.gameOverStats p:nth-child(2) span:last-child {
+  color: #ff00ff; font-weight: 700;
+  text-shadow: 0 0 8px rgba(255, 0, 255, 0.5);
+}
+.gameOverStats p:nth-child(3) span:last-child {
+  color: #ffd700; font-weight: 700;
+  text-shadow: 0 0 8px rgba(255, 215, 0, 0.4);
+}
 .gameOverActions { 
   display: flex; 
   gap: 12px; /* Réduit (avant: 16px) */
@@ -816,9 +847,9 @@ body.comboActive #combo {
 
 .gameOverActions .bigButton {
   flex: 1; 
-  padding: 12px 0; /* Réduit (avant: 16px) */
+  padding: 15px 0; /* Réduit (avant: 16px) */
   font-family: var(--font-title); 
-  font-size: 13px; /* Ajout d'une taille de police fixe */
+  font-size: 16px; /* Ajout d'une taille de police fixe */
   font-weight: 700; text-transform: uppercase;
   border: 1px solid rgba(255,255,255,0.2); 
   background: rgba(255,255,255,0.05); color: #fff; cursor: pointer;
@@ -1172,7 +1203,22 @@ body.playing .menuParticles {
     transition: filter 0.5s;
 }
 .neon-wheel.spinning .mw-labels { filter: none !important; }
-
+#rankChangedBtn {
+    display: none;
+    width: 100%;
+    padding: 10px;
+    font-family: var(--font-title);
+    font-size: 11px;
+    font-weight: 900;
+    letter-spacing: 1px;
+    color: #ffd700;
+    background: rgba(255, 215, 0, 0.08);
+    border: 1px solid rgba(255, 215, 0, 0.4);
+    cursor: pointer;
+    clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
+    animation: multiPulse 1.5s infinite; /* Ta propre animation ! */
+}
+#rankChangedBtn:active { opacity: 0.7; }
 </style>
 
 </head>
@@ -1211,33 +1257,41 @@ body.playing .menuParticles {
   
   <div id="inputBlocker"></div>
 
-  <div id="menuOverlay">
-    <canvas id="galaxyBG"></canvas>
-    <div class="menuParticles"></div>
-    <video id="menuVideo" muted loop playsinline preload="none" data-src="./assets/menu_bg.mp4"></video>
+<div id="menuOverlay">
+  <canvas id="galaxyBG"></canvas>
+  <div class="menuParticles"></div>
+  <video id="menuVideo" muted loop playsinline preload="none" data-src="./assets/menu_bg.mp4"></video>
 
-    <div id="menuStats">
-      <div class="statBox best">
-        <div class="statLabel">BEST</div>
-        <div class="statValue" id="menuBest">0</div>
-      </div>
-      <div class="statBox coins">
-        <div class="statLabel">COINS</div>
-        <div class="statValue" id="menuCoins">0</div>
-      </div>
+  <div id="menuStats">
+    <div class="statBox best">
+      <div class="statLabel">BEST</div>
+      <div class="statValue" id="menuBest">0</div>
+    </div>
+    <div class="statBox coins">
+      <div class="statLabel">COINS</div>
+      <div class="statValue" id="menuCoins">0</div>
+    </div>
+  </div>
+
+  <div id="menuButtons">
+    <button id="btnPlay" class="menuBtn">PLAY</button>
+    
+    <div class="menu-row">
+      <button id="btnLeaderboard" class="menuBtn">TOP PLAYERS</button>
+      <button id="btnShop" class="menuBtn">SKIN SHOP</button>
     </div>
 
-<div id="menuButtons">
-  <button id="btnPlay" class="menuBtn">PLAY</button>
-  
-  <button id="btnLeaderboard" class="menuBtn prestige-btn">🏆 TOP PLAYERS</button>
-  <button id="btnShop" class="menuBtn">SKIN SHOP</button>
-  
-  <button id="btnOptions" class="menuBtn">SETTINGS</button>
-  <button onclick="openRoulette()" class="menuBtn prestige-btn">
-    🎰 LUCKY SPIN <span id="rouletteStatus" style="font-size:9px; opacity:0.8; margin-left:2px; display:block;"></span>
+    <div class="menu-row">
+      <button id="btnOptions" class="menuBtn">SETTINGS</button>
+      <button onclick="openRoulette()" class="menuBtn roulette-btn">
+        🎰 SPIN <span id="rouletteStatus" style="font-size:9px; opacity:0.8; margin-left:3px;"></span>
+      </button>
+    </div>
+  </div>
+
+  <button id="btnPrivacy" style="position: absolute; bottom: 20px; right: 20px; width: auto; height: auto; padding: 10px 15px; font-size: 10px; background: rgba(0, 240, 255, 0.1); border: 2px solid #00f0ff; color: #00f0ff; border-radius: 8px; cursor: pointer; text-transform: uppercase; letter-spacing: 1px; box-shadow: 0 0 10px rgba(0, 240, 255, 0.4); z-index: 100;">
+    🛡️ PRIVACY & ADS
   </button>
-</div>
 
 </div>
 
@@ -1301,7 +1355,7 @@ body.playing .menuParticles {
     </div>
   </div>
 
- <div id="optionsPanel">
+  <div id="optionsPanel">
     <div class="optionsBox">
       <h2>SETTINGS</h2>
       <div class="optRow">
@@ -1315,12 +1369,12 @@ body.playing .menuParticles {
       <div class="optRow">
         <label><input id="optMute" type="checkbox"> 🔇 Mute</label>
       </div>
-      
-      <button id="btnPrivacy" class="menuBtn" style="width:100%; margin-top:15px; margin-bottom:10px; font-size:12px; background:rgba(0, 240, 255, 0.1); border-color:#00f0ff; color:#00f0ff;">🛡️ PRIVACY & ADS</button>
-      
+  
+
       <button id="optBack" class="menuBtn">BACK</button>
     </div>
   </div>
+   
 
   <div id="gameContainer">
     <canvas id="game" width="720" height="405"></canvas>
@@ -1371,17 +1425,20 @@ body.playing .menuParticles {
 
     <div id="overlayGameOver">
       <div class="gameOverCard">
-        <div id="newRecord" style="font-size:48px; font-weight:900; color:#ffd700; text-shadow:0 0 25px #ffea00; opacity:0; transform:scale(0.6); transition:opacity .5s, transform .5s; display:none;">
-          NEW RECORD !
-        </div>
+<div id="newRecord" style="font-size:calc(48px * var(--ui-scale, 1)); font-weight:900; color:#ffd700; text-shadow:0 0 25px #ffea00; opacity:0; transform:scale(0.6); transition:opacity .5s, transform .5s; display:none;">
+    NEW RECORD !
+</div>
 
+<button id="rankChangedBtn" onclick="showLeaderboard()" style="font-size:16px; padding: 8px 12px;">
+    🏆 YOUR RANK CHANGED — SEE WHERE YOU ARE!
+</button>
         <h2 class="gameOverTitle">Game Over !</h2>
 
         <div class="gameOverStats">
-          <p>Score <span id="finalScore">0</span></p>
-          <p>Best Score <span id="finalBest">0</span></p>
-          <p>Coins <span id="finalCoins">0</span></p>
-        </div>
+  <p><span class="stat-label stat-score">⚡ SCORE</span><span id="finalScore">0</span></p>
+  <p><span class="stat-label stat-best">🏆 BEST</span><span id="finalBest">0</span></p>
+  <p><span class="stat-label stat-coins">🪙 COIN</span><span id="finalCoins">0</span></p>
+</div>
 
         <style>
             @keyframes multiPulse {
@@ -1391,9 +1448,9 @@ body.playing .menuParticles {
             }
         </style>
 <button id="multiplyBtn" onclick="startMultiplierSpin()" 
-    style="width:100%; padding:8px; margin-bottom:10px; font-family:Orbitron; font-size:14px; font-weight:900; background:linear-gradient(to right, #642B73, #C6426E); color:#fff; border:none; border-radius:4px; cursor:pointer; display:none; flex-direction:column; align-items:center;">
+    style="width:100%; padding:8px; margin-bottom:10px; font-family:Orbitron; font-size:16px; font-weight:900; background:linear-gradient(to right, #642B73, #C6426E); color:#fff; border:none; border-radius:4px; cursor:pointer; display:none; flex-direction:column; align-items:center;">
     <span>💎 MULTIPLY COINS</span>
-    <span style="font-size:9px; opacity:0.8; font-weight:400; margin-top:2px;">( WATCH VIDEO TO SPIN )</span>
+    <span style="font-size:11px; opacity:0.8; font-weight:400; margin-top:2px;">( WATCH VIDEO TO SPIN )</span>
 </button>
 
         <div class="gameOverActions">
@@ -2816,39 +2873,16 @@ function executeSpin() {
 let canContinueThisRun = true;
 let isWatchingAd = false;
 let continueTimeout = null;
-let leaderboardShownThisGameOver = false; // 🍎 SÉCURITÉ ANTI-DOUBLON
-let reviveAttempted = false; // 🛡️ SÉCURITÉ UX (Nouveau)
+let leaderboardShownThisGameOver = false;
+let reviveAttempted = false;
 
-// 🏆 FONCTION HYPE : AUTO-POPUP GAME CENTER
-function maybeShowLeaderboardAfterGameOver(delay = 800) {
-    if (leaderboardShownThisGameOver) return;
-    if (!newRecordThisRun) return;
-    if (typeof showLeaderboard !== "function") return;
-    if (isWatchingAd) return; // 🛡️ Sécurité pub
-
-    leaderboardShownThisGameOver = true;
-
-    setTimeout(() => {
-        // 🛡️ Vérifie qu'on est TOUJOURS sur l'écran Game Over
-        if (typeof uiState !== "undefined" && uiState !== "gameover") {
-            leaderboardShownThisGameOver = false; 
-            return;
-        }
-        showLeaderboard(); // Appelle ta fonction Game Center
-    }, delay);
-}
+function maybeShowLeaderboardAfterGameOver() {}
 
 function hideContinuePopup() {
     const popup = document.getElementById("continuePopup");
     if (continueTimeout) clearTimeout(continueTimeout);
     continueTimeout = null;
     if (popup) popup.style.display = "none";
-
-    // 🍏 Déclencheur du Game Center à la fermeture du Revive
-    // 🛡️ FIX UX : Ne s'ouvre pas si le joueur a cliqué sur Pub mais qu'elle a échoué
-    if (!isWatchingAd && !reviveAttempted) {
-        maybeShowLeaderboardAfterGameOver(500);
-    }
 }
 
 function showContinuePopup(durationSec = 4.0) {
@@ -2873,7 +2907,7 @@ function showContinuePopup(durationSec = 4.0) {
     });
 
     continueTimeout = setTimeout(() => {
-        hideContinuePopup(); // Le temps est écoulé, on reste sur l'écran de score
+        hideContinuePopup();
     }, durationSec * 1000);
 }
 
@@ -2883,17 +2917,15 @@ function showContinuePopup(durationSec = 4.0) {
 function handleContinueAd() {
     if (isWatchingAd || !canContinueThisRun) return;
     isWatchingAd = true;
-    canContinueThisRun = false; // On consomme le revive
-    reviveAttempted = true; // 🛡️ On note qu'il a tenté de regarder une pub
+    canContinueThisRun = false;
+    reviveAttempted = true;
 
     const btn = document.getElementById("continueAdBtn");
     if (btn) btn.innerHTML = `<span class="btn-txt">LOADING AD...</span>`;
     if (continueTimeout) clearTimeout(continueTimeout);
 
-    // 🔇 COUPURE AUDIO UNIQUE
     playMusic("none");
 
-    // 🚨 FIX CRITIQUE iOS : TIMEOUT SÉCURITÉ PUB (10 secondes max)
     let adSafetyTimeout = setTimeout(() => {
         console.warn("⚠️ Ad fallback triggered (Timeout)");
         isWatchingAd = false;
@@ -2902,14 +2934,13 @@ function handleContinueAd() {
 
     if (typeof showRewardedAd === "function") {
         showRewardedAd(
-            () => { // SUCCÈS
-                clearTimeout(adSafetyTimeout); // On annule le timeout
-                // La musique "GAME" sera relancée dans revivePlayerAfterAd()
+            () => {
+                clearTimeout(adSafetyTimeout);
                 revivePlayerAfterAd();
-                isWatchingAd = false; // 🔥 FIX : Toujours APRES la résurrection !
+                isWatchingAd = false;
             },
-            () => { // ÉCHEC / FERMETURE SANS RÉCOMPENSE
-                clearTimeout(adSafetyTimeout); // On annule le timeout
+            () => {
+                clearTimeout(adSafetyTimeout);
                 isWatchingAd = false;
                 hideContinuePopup(); 
             }
@@ -2927,17 +2958,14 @@ function handleContinueAd() {
 function revivePlayerAfterAd() {
     hideContinuePopup();
     
-    // 1. UI RESET
     if (overlayGameOver) {
         overlayGameOver.classList.remove("visible");
         overlayGameOver.style.display = "none";
     }
 
     setUIState("playing"); 
-
     gameRunning = false; 
 
-    // 2. RESET PHYSIQUE DU JOUEUR
     player.x = 100;
     player.y = BASE_H * 0.5;
     player.vy = 0;
@@ -2946,7 +2974,6 @@ function revivePlayerAfterAd() {
     
     jetOn = false;
 
-    // 3. NETTOYAGE DES FX FIGÉS
     shockwave = null;
     bloom = null;
     dyingFromCircle = null;
@@ -2955,15 +2982,12 @@ function revivePlayerAfterAd() {
     overdriveTimer = 0;
     player.invincible = true;
 
-    // 4. NETTOYAGE ZONE
     obstacles = obstacles.filter(o => o.x > player.x + 800);
     bullets = [];
     
     lastSpawnTime = renderTime + 1000; 
-
     draw(); 
 
-    // 5. OVERLAY "READY?"
     const oldOverlay = document.getElementById("resumeOverlay");
     if (oldOverlay) oldOverlay.remove();
 
@@ -2982,24 +3006,19 @@ function revivePlayerAfterAd() {
 
     document.body.appendChild(resumeOverlay);
 
-    // 6. RELANCE DU JEU (FIX ANTI DOUBLE-TOUCH iOS)
     let resumed = false; 
 
     const resumeGame = (e) => {
-        if (resumed) return; // 🛡️ Empêche le double tir sur iOS
+        if (resumed) return;
         resumed = true;
-
-        // Empêche le clic de traverser
         if (e) { e.preventDefault(); e.stopPropagation(); }
         
         resumeOverlay.remove();
         
-        // Relance Moteur
         gameRunning = true;
         if (typeof lastTS !== "undefined") lastTS = performance.now();
         startLoop();
 
-        // Relance Son
         if (typeof audioSettings !== "undefined" && !audioSettings.mute) {
             playMusic("game");
         }
@@ -3016,7 +3035,7 @@ function revivePlayerAfterAd() {
     resumeOverlay.ontouchstart = resumeGame;
 }
 
-let hasMultiplied = false; // Sécurité pour empêcher de multiplier 10 fois
+let hasMultiplied = false;
 
 function handleGameOver() {
     _startRunLock = false;
@@ -3037,39 +3056,32 @@ function handleGameOver() {
         newRecordThisRun = true; 
     }
 
-    // Sauvegarde initiale des pièces
     coinsBank += (coinsCollected || 0);
     Player.coins = coinsBank;
     Player.bestScore = bestScore;
     Player.save();
 
-    // ==========================================
     // 🏆 APPLE GAME CENTER : ENVOI DU SCORE
-    // ==========================================
     if (newRecordThisRun && bestScore > 0) {
-        // On vérifie que GameConnect est bien chargé
         const GameConnect = window.Capacitor && window.Capacitor.Plugins.GameConnect;
         if (GameConnect) {
             console.log("🍏 Envoi du nouveau record au Game Center :", bestScore);
             GameConnect.submitScore({
-                leaderboardID: "galaxyrush.bestscore", // ⚠️ L'ID que tu as créé sur App Store Connect
+                leaderboardID: "galaxyrush.bestscore",
                 totalScoreAmount: bestScore
             }).catch(e => console.warn("Erreur Game Center :", e));
         }
     }
-    // ==========================================
 
     if (typeof updateMenuStats === 'function') updateMenuStats();
 
-    // Remplissage UI Game Over
     safeText(finalScoreEl, s.toLocaleString());
     safeText(finalBestEl, (bestScore || 0).toLocaleString());
     safeText(finalCoinsEl, (coinsCollected || 0).toLocaleString());
 
-    // --- 💰 GESTION DU BOUTON MULTIPLICATEUR ---
+    // --- 💰 BOUTON MULTIPLICATEUR ---
     const multiplyBtn = document.getElementById("multiplyBtn");
     if (multiplyBtn) {
-        // On affiche le bouton SEULEMENT SI le joueur a des pièces à multiplier
         if (coinsCollected > 0 && !hasMultiplied) {
             multiplyBtn.style.display = "block";
             multiplyBtn.textContent = "🔥🎰 WATCH AD & MULTIPLY COINS!📺";
@@ -3080,28 +3092,31 @@ function handleGameOver() {
         }
     }
 
-    // --- 🏆 GESTION NEW RECORD UI ---
+    // --- 🏆 NEW RECORD UI ---
     const nrEl = document.getElementById("newRecord");
-    if (nrEl) {
-        if (newRecordThisRun) {
+    const rankBtn = document.getElementById("rankChangedBtn");
+
+    if (newRecordThisRun) {
+        if (nrEl) {
             nrEl.style.display = "block";
             requestAnimationFrame(() => {
                 nrEl.style.opacity = "1";
                 nrEl.style.transform = "scale(1)";
             });
-        } else {
+        }
+        if (rankBtn) rankBtn.style.display = "block";
+    } else {
+        if (nrEl) {
             nrEl.style.display = "none";
             nrEl.style.opacity = "0";
             nrEl.style.transform = "scale(0.6)";
         }
+        if (rankBtn) rankBtn.style.display = "none";
     }
 
-    // Affichage du popup de REVIVE par dessus (S'il est dispo)
+    // REVIVE si dispo, sinon rien
     if (canContinueThisRun && isAdSystemReady()) {
         showContinuePopup(4.5);
-    } else {
-        // 🍏 Pas de popup revive possible → on affiche le Game Center direct si record
-        maybeShowLeaderboardAfterGameOver(1500);
     }
 }
 // ================================
