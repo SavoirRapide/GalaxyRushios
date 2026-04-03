@@ -13,16 +13,12 @@ workflows:
         bundle_identifier: com.a2games.galaxyrush
       vars:
         ADMOB_APP_ID: "ca-app-pub-2409581870901167~7654643904"
-        
+
     scripts:
       - name: Install JS Dependencies and Web Assets
         script: |
-          npm install --legacy-peer-deps
+          npm install
           npm run build || echo "Skip build"
-
-      - name: Cocoapods installation
-        script: |
-          cd ios/App && pod install
 
       - name: Capacitor Sync
         script: |
@@ -75,7 +71,8 @@ workflows:
       - name: Build IPA
         script: |
           cd ios/App
-          xcode-project build-ipa --workspace "App.xcworkspace" --scheme App --clean
+          # La magie de SPM : on pointe directement sur le xcodeproj !
+          xcode-project build-ipa --project "App.xcodeproj" --scheme App --clean
 
     artifacts:
       - ios/build/ios/ipa/*.ipa
