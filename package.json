@@ -5,19 +5,16 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "echo 'No web build script defined'"
+    "build": "echo 'No web build script needed'"
   },
-  "keywords": [
-    "capacitor",
-    "ios",
-    "gamecenter"
-  ],
+  "keywords": ["capacitor", "ios", "gamecenter"],
   "author": "",
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
     "@capacitor-community/admob": "^8.0.0",
-   
+    "capacitor-game-connect": "^3.0.0",
+    "@capacitor-community/apple-tracking-transparency": "^1.0.0",
     "@capacitor/cli": "^8.1.0",
     "@capacitor/core": "^8.1.0",
     "@capacitor/ios": "^8.1.0"
