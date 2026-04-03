@@ -20,9 +20,13 @@ workflows:
           npm install --legacy-peer-deps
           npm run build || echo "Skip build"
 
+      - name: Cocoapods installation
+        script: |
+          cd ios/App && pod install
+
       - name: Capacitor Sync
         script: |
-          node_modules/.bin/cap sync ios
+          npx cap sync ios
 
       - name: Configure Info.plist
         script: |
