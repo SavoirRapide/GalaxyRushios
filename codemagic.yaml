@@ -14,34 +14,29 @@ workflows:
       vars:
         ADMOB_APP_ID: "ca-app-pub-2409581870901167~7654643904"
     scripts:
-      - name: Install and Sync
+      - name: Install JS Dependencies and Web Assets
         script: |
           npm install --legacy-peer-deps
-          npm install capacitor-game-connect @capacitor-community/apple-tracking-transparency --legacy-peer-deps
-          npx capacitor sync ios
-
-      - name: Build web assets
-        script: |
           npm run build || echo "Skip build"
+
+      - name: Capacitor Sync
+        script: |
+          npx capacitor sync ios
 
       - name: Configure Info.plist
         script: |
           cd ios/App/App
-          # AdMob
           /usr/libexec/PlistBuddy -c "Delete :GADApplicationIdentifier" Info.plist || true
           /usr/libexec/PlistBuddy -c "Add :GADApplicationIdentifier string $ADMOB_APP_ID" Info.plist
-          # ATT — OBLIGATOIRE sinon rejet Apple
           /usr/libexec/PlistBuddy -c "Delete :NSUserTrackingUsageDescription" Info.plist || true
           /usr/libexec/PlistBuddy -c "Add :NSUserTrackingUsageDescription string 'We use your data to show you personalized ads and improve your experience.'" Info.plist
-          # Game Center
           /usr/libexec/PlistBuddy -c "Delete :UIRequiredDeviceCapabilities" Info.plist || true
           /usr/libexec/PlistBuddy -c "Add :UIRequiredDeviceCapabilities array" Info.plist
           /usr/libexec/PlistBuddy -c "Add :UIRequiredDeviceCapabilities:0 string gamekit" Info.plist
-          # Version
-          /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString 1.0.7" Info.plist
+          /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString 1.0.6" Info.plist
           /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $BUILD_NUMBER" Info.plist
 
-      - name: Enable Game Center Capability
+      - name: Enable Game Center Entitlements
         script: |
           cd ios/App
           cat << 'EOF' > App/App.entitlements
@@ -54,6 +49,7 @@ workflows:
           </dict>
           </plist>
           EOF
+          gem install xcodeproj
           ruby -e "
           require 'xcodeproj'
           project = Xcodeproj::Project.open('App.xcodeproj')
@@ -71,8 +67,7 @@ workflows:
       - name: Build IPA
         script: |
           cd ios/App
-          xcodebuild -resolvePackageDependencies -project App.xcodeproj -scheme App
-          xcode-project build-ipa --project "App.xcodeproj" --scheme App --clean
+          xcode-project build-ipa --workspace "App.xcworkspace" --scheme App --clean
 
     artifacts:
       - ios/build/ios/ipa/*.ipa
