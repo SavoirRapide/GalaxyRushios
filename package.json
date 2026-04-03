@@ -14,9 +14,9 @@
   "dependencies": {
     "@capacitor-community/admob": "^8.0.0",
     "capacitor-game-connect": "^3.0.0",
-    "@capacitor-community/apple-tracking-transparency": "^1.0.0",
-    "@capacitor/cli": "^8.1.0",
-    "@capacitor/core": "^8.1.0",
-    "@capacitor/ios": "^8.1.0"
+    "@capacitor-community/app-tracking-transparency": "^1.0.0",
+    "@capacitor/cli": "^6.0.0",
+    "@capacitor/core": "^6.0.0",
+    "@capacitor/ios": "^6.0.0"
   }
 }
