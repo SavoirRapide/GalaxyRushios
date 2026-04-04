@@ -13,33 +13,24 @@ workflows:
         bundle_identifier: com.a2games.galaxyrush
       vars:
         ADMOB_APP_ID: "ca-app-pub-2409581870901167~7654643904"
-
     scripts:
       - name: Install JS Dependencies and Web Assets
         script: |
           npm install --legacy-peer-deps
           npm run build || echo "Skip build"
-
       - name: Capacitor Sync
         script: |
-          ./node_modules/.bin/cap sync ios
-
+          npx cap sync ios
       - name: Configure Info.plist
         script: |
           cd ios/App/App
           /usr/libexec/PlistBuddy -c "Delete :GADApplicationIdentifier" Info.plist || true
           /usr/libexec/PlistBuddy -c "Add :GADApplicationIdentifier string $ADMOB_APP_ID" Info.plist
-          
-          /usr/libexec/PlistBuddy -c "Delete :NSUserTrackingUsageDescription" Info.plist || true
-          /usr/libexec/PlistBuddy -c "Add :NSUserTrackingUsageDescription string 'We use your data to show you personalized ads and improve your experience.'" Info.plist
-          
           /usr/libexec/PlistBuddy -c "Delete :UIRequiredDeviceCapabilities" Info.plist || true
           /usr/libexec/PlistBuddy -c "Add :UIRequiredDeviceCapabilities array" Info.plist
           /usr/libexec/PlistBuddy -c "Add :UIRequiredDeviceCapabilities:0 string gamekit" Info.plist
-          
           /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString 1.0.6" Info.plist
           /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $BUILD_NUMBER" Info.plist
-
       - name: Enable Game Center Entitlements
         script: |
           cd ios/App
@@ -63,19 +54,15 @@ workflows:
           end
           project.save
           "
-
       - name: Set up code signing
         script: |
           xcode-project use-profiles
-
       - name: Build IPA
         script: |
           cd ios/App
           xcode-project build-ipa --project "App.xcodeproj" --scheme App --clean
-
     artifacts:
       - ios/build/ios/ipa/*.ipa
-
     publishing:
       app_store_connect:
         auth: integration
