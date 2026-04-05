@@ -79,10 +79,20 @@ workflows:
       - name: Build IPA
         script: |
           cd ios/App
-          xcode-project build-ipa --project "App.xcodeproj" --scheme App --clean
+          xcode-project build-ipa \
+            --project "App.xcodeproj" \
+            --scheme App \
+            --clean \
+            --archive-flags "CODE_SIGN_ENTITLEMENTS=App/App.entitlements"
+
+      - name: Verify Game Center in build
+        script: |
+          echo "🔍 Checking entitlements in final build..."
+          codesign -d --entitlements :- ios/App/build/*.app 2>/dev/null || \
+          codesign -d --entitlements :- ios/App/App.xcarchive/Products/Applications/*.app || true
 
     artifacts:
-      - ios/build/ios/ipa/*.ipa
+      - ios/App/build/ios/ipa/*.ipa
 
     publishing:
       app_store_connect:
