@@ -94,21 +94,26 @@ workflows:
       - name: Build IPA
         script: |
           cd ios/App
-          if [ -d "App.xcworkspace" ]; then
-            echo "📦 Workspace détecté, compilation via App.xcworkspace..."
-            xcode-project build-ipa \
-              --workspace "App.xcworkspace" \
-              --scheme App \
-              --clean \
-              --archive-flags "CODE_SIGN_ENTITLEMENTS=App/App.entitlements"
-          else
-            echo "📦 Projet SPM détecté, compilation via App.xcodeproj..."
-            xcode-project build-ipa \
-              --project "App.xcodeproj" \
-              --scheme App \
-              --clean \
-              --archive-flags "CODE_SIGN_ENTITLEMENTS=App/App.entitlements"
-          fi
+          echo "🔍 Build verbose pour voir l'erreur réelle..."
+          set -o pipefail
+          xcodebuild \
+            -project App.xcodeproj \
+            -scheme App \
+            -configuration Release \
+            -archivePath build/ios/xcarchive/App.xcarchive \
+            CODE_SIGN_ENTITLEMENTS=App/App.entitlements \
+            COMPILER_INDEX_STORE_ENABLE=NO \
+            DEVELOPMENT_TEAM=ALUCSWR3FW \
+            CODE_SIGN_IDENTITY="Apple Distribution" \
+            CODE_SIGN_STYLE=Manual \
+            archive 2>&1 | grep -E "error:|warning:|fatal|Build succeeded|Build FAILED" | tail -80 || true
+          
+          echo "🔍 Tentative build-ipa..."
+          xcode-project build-ipa \
+            --project "App.xcodeproj" \
+            --scheme App \
+            --clean \
+            --archive-flags "CODE_SIGN_ENTITLEMENTS=App/App.entitlements"
 
       - name: Verify Game Center in build
         script: |
