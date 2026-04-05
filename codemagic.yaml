@@ -24,6 +24,17 @@ workflows:
         script: |
           npx cap sync ios
 
+      - name: Debug - Find Package.swift
+        script: |
+          echo "📁 Structure ios/App :"
+          find ios/App -name "*.swift" -o -name "*.xcworkspace" -o -name "Podfile" | head -30
+          echo "--- Tous les Package.swift ---"
+          find ios -name "Package.swift" 2>/dev/null
+          echo "--- Contenu ios/App ---"
+          ls -la ios/App/
+          echo "--- Contenu ios/App/CapApp-SPM ---"
+          ls -la ios/App/CapApp-SPM/ 2>/dev/null || echo "Dossier CapApp-SPM absent"
+
       - name: Patch Package.swift for capacitor-swift-pm 8.x
         script: |
           echo "🔍 Recherche du Package.swift..."
@@ -83,11 +94,21 @@ workflows:
       - name: Build IPA
         script: |
           cd ios/App
-          xcode-project build-ipa \
-            --project "App.xcodeproj" \
-            --scheme App \
-            --clean \
-            --archive-flags "CODE_SIGN_ENTITLEMENTS=App/App.entitlements"
+          if [ -d "App.xcworkspace" ]; then
+            echo "📦 Workspace détecté, compilation via App.xcworkspace..."
+            xcode-project build-ipa \
+              --workspace "App.xcworkspace" \
+              --scheme App \
+              --clean \
+              --archive-flags "CODE_SIGN_ENTITLEMENTS=App/App.entitlements"
+          else
+            echo "📦 Projet SPM détecté, compilation via App.xcodeproj..."
+            xcode-project build-ipa \
+              --project "App.xcodeproj" \
+              --scheme App \
+              --clean \
+              --archive-flags "CODE_SIGN_ENTITLEMENTS=App/App.entitlements"
+          fi
 
       - name: Verify Game Center in build
         script: |
