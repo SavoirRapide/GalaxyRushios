@@ -14,37 +14,53 @@ workflows:
       vars:
         ADMOB_APP_ID: "ca-app-pub-2409581870901167~7654643904"
     scripts:
-      - name: Install JS Dependencies and Web Assets
+      - name: Install JS Dependencies
         script: |
-          npm install --legacy-peer-deps
-          npm run build || echo "Skip build"
+          npm install @capacitor/core@^7.0.0 @capacitor/ios@^7.0.0 @capacitor/cli@^7.0.0 --legacy-peer-deps
+          npm install @capacitor-community/admob@^8.0.0 --legacy-peer-deps
+          npm install @openforge/capacitor-game-connect --legacy-peer-deps
+
       - name: Capacitor Sync
         script: |
           npx cap sync ios
+
+      - name: Patch Package.swift for capacitor-swift-pm 8.x
+        script: |
+          PKG="ios/App/App/Package.swift"
+          sed -i '' 's/exact: "[0-9.]*"/.upToNextMajor(from: "8.0.0")/' "$PKG" || true
+          sed -i '' 's/from: "7\.[0-9.]*"/from: "8.0.0"/' "$PKG" || true
+          echo "✅ Package.swift final:"
+          cat "$PKG"
+
+      - name: Force Clean & Resolve SPM Dependencies
+        script: |
+          cd ios/App
+          rm -f App.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved
+          xcodebuild -resolvePackageDependencies -project App.xcodeproj -scheme App
+
       - name: Configure Info.plist
         script: |
           cd ios/App/App
           /usr/libexec/PlistBuddy -c "Delete :GADApplicationIdentifier" Info.plist || true
           /usr/libexec/PlistBuddy -c "Add :GADApplicationIdentifier string $ADMOB_APP_ID" Info.plist
-          /usr/libexec/PlistBuddy -c "Delete :UIRequiredDeviceCapabilities" Info.plist || true
-          /usr/libexec/PlistBuddy -c "Add :UIRequiredDeviceCapabilities array" Info.plist
-          /usr/libexec/PlistBuddy -c "Add :UIRequiredDeviceCapabilities:0 string gamekit" Info.plist
           /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString 1.0.6" Info.plist
           /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $BUILD_NUMBER" Info.plist
+
       - name: Enable Game Center Entitlements
         script: |
           cd ios/App
-          cat << 'EOF' > App/App.entitlements
+          if [ ! -f App/App.entitlements ]; then
+            cat > App/App.entitlements << 'EOF'
           <?xml version="1.0" encoding="UTF-8"?>
           <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
           <plist version="1.0">
           <dict>
-              <key>com.apple.developer.game-center</key>
-              <true/>
           </dict>
           </plist>
           EOF
-          gem install xcodeproj
+          fi
+          /usr/libexec/PlistBuddy -c "Add :com.apple.developer.game-center bool true" App/App.entitlements || true
+          gem install xcodeproj --no-document
           ruby -e "
           require 'xcodeproj'
           project = Xcodeproj::Project.open('App.xcodeproj')
@@ -53,16 +69,21 @@ workflows:
             config.build_settings['CODE_SIGN_ENTITLEMENTS'] = 'App/App.entitlements'
           end
           project.save
+          puts '✅ Entitlements configured'
           "
+
       - name: Set up code signing
         script: |
           xcode-project use-profiles
+
       - name: Build IPA
         script: |
           cd ios/App
           xcode-project build-ipa --project "App.xcodeproj" --scheme App --clean
+
     artifacts:
       - ios/build/ios/ipa/*.ipa
+
     publishing:
       app_store_connect:
         auth: integration
