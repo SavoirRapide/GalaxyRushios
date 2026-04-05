@@ -26,11 +26,15 @@ workflows:
 
       - name: Patch Package.swift for capacitor-swift-pm 8.x
         script: |
-          PKG="ios/App/App/Package.swift"
-          sed -i '' 's/exact: "[0-9.]*"/.upToNextMajor(from: "8.0.0")/' "$PKG" || true
-          sed -i '' 's/from: "7\.[0-9.]*"/from: "8.0.0"/' "$PKG" || true
-          echo "✅ Package.swift final:"
-          cat "$PKG"
+          echo "🔍 Recherche du Package.swift..."
+          find ios -name "Package.swift" | xargs grep -l "capacitor-swift-pm" 2>/dev/null || echo "Aucun fichier trouvé"
+          for PKG in $(find ios -name "Package.swift" | xargs grep -l "capacitor-swift-pm" 2>/dev/null); do
+            echo "📝 Patching $PKG"
+            sed -i '' 's/exact: "[0-9.]*"/.upToNextMajor(from: "8.0.0")/' "$PKG" || true
+            sed -i '' 's/from: "7\.[0-9.]*"/from: "8.0.0"/' "$PKG" || true
+            echo "✅ Contenu final de $PKG :"
+            cat "$PKG"
+          done
 
       - name: Force Clean & Resolve SPM Dependencies
         script: |
