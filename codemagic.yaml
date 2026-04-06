@@ -7,7 +7,7 @@ workflows:
       app_store_connect: Codemagic2
     environment:
       groups:
-        - signing
+        - signin
       xcode: latest
       node: 20
       ios_signing:
