@@ -23,7 +23,7 @@ workflows:
           npm install @openforge/capacitor-game-connect --legacy-peer-deps
           npm install @capacitor/local-notifications@^7.0.0 --legacy-peer-deps
           npm install @capacitor-community/firebase-analytics --legacy-peer-deps
-          npm install @capacitor-community/app-tracking-transparency --legacy-peer-deps
+          npm install capacitor-plugin-app-tracking-transparency --legacy-peer-deps
 
       - name: Capacitor Sync
         script: |
