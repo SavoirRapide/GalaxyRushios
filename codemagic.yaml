@@ -31,11 +31,13 @@ workflows:
 
       - name: Patch Package.swift for capacitor-swift-pm 8.x
         script: |
-          echo "🔍 Recherche du Package.swift..."
-          for PKG in $(find ios -name "Package.swift" | xargs grep -l "capacitor-swift-pm" 2>/dev/null); do
+          echo "🔍 Patch de TOUS les Package.swift (ios + node_modules)..."
+          for PKG in $(find . -name "Package.swift" | xargs grep -l "capacitor-swift-pm" 2>/dev/null); do
             echo "📝 Patching $PKG"
-            sed -i '' 's/exact: "[0-9.]*"/.upToNextMajor(from: "8.0.0")/' "$PKG" || true
-            sed -i '' 's/from: "7\.[0-9.]*"/from: "8.0.0"/' "$PKG" || true
+            sed -i '' 's/from: "[0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*"/from: "8.0.0"/g' "$PKG" || true
+            sed -i '' 's/exact: "[0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*"/.upToNextMajor(from: "8.0.0")/g' "$PKG" || true
+            sed -i '' 's/\.upToNextMinor(from: "[0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*")/.upToNextMajor(from: "8.0.0")/g' "$PKG" || true
+            sed -i '' 's/\.\.<[0-9][0-9]*\.0\.0/..<9.0.0/g' "$PKG" || true
             echo "✅ Contenu final de $PKG :"
             cat "$PKG"
           done
