@@ -24,21 +24,9 @@ workflows:
         script: |
           npx cap sync ios
 
-      - name: Debug - Find Package.swift
-        script: |
-          echo "📁 Structure ios/App :"
-          find ios/App -name "*.swift" -o -name "*.xcworkspace" -o -name "Podfile" | head -30
-          echo "--- Tous les Package.swift ---"
-          find ios -name "Package.swift" 2>/dev/null
-          echo "--- Contenu ios/App ---"
-          ls -la ios/App/
-          echo "--- Contenu ios/App/CapApp-SPM ---"
-          ls -la ios/App/CapApp-SPM/ 2>/dev/null || echo "Dossier CapApp-SPM absent"
-
       - name: Patch Package.swift for capacitor-swift-pm 8.x
         script: |
           echo "🔍 Recherche du Package.swift..."
-          find ios -name "Package.swift" | xargs grep -l "capacitor-swift-pm" 2>/dev/null || echo "Aucun fichier trouvé"
           for PKG in $(find ios -name "Package.swift" | xargs grep -l "capacitor-swift-pm" 2>/dev/null); do
             echo "📝 Patching $PKG"
             sed -i '' 's/exact: "[0-9.]*"/.upToNextMajor(from: "8.0.0")/' "$PKG" || true
@@ -56,8 +44,13 @@ workflows:
       - name: Configure Info.plist
         script: |
           cd ios/App/App
+          # AdMob
           /usr/libexec/PlistBuddy -c "Delete :GADApplicationIdentifier" Info.plist || true
           /usr/libexec/PlistBuddy -c "Add :GADApplicationIdentifier string $ADMOB_APP_ID" Info.plist
+          # ATT - App Tracking Transparency
+          /usr/libexec/PlistBuddy -c "Delete :NSUserTrackingUsageDescription" Info.plist || true
+          /usr/libexec/PlistBuddy -c "Add :NSUserTrackingUsageDescription string 'We use tracking to show you personalized ads and improve your experience.'" Info.plist
+          # Version
           /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString 1.0.6" Info.plist
           /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $BUILD_NUMBER" Info.plist
 
@@ -89,26 +82,16 @@ workflows:
 
       - name: Set up code signing
         script: |
+          keychain initialize
+          app-store-connect fetch-signing-files com.a2games.galaxyrush \
+            --type IOS_APP_STORE \
+            --create
+          keychain add-certificates
           xcode-project use-profiles
 
       - name: Build IPA
         script: |
           cd ios/App
-          echo "🔍 Build verbose pour voir l'erreur réelle..."
-          set -o pipefail
-          xcodebuild \
-            -project App.xcodeproj \
-            -scheme App \
-            -configuration Release \
-            -archivePath build/ios/xcarchive/App.xcarchive \
-            CODE_SIGN_ENTITLEMENTS=App/App.entitlements \
-            COMPILER_INDEX_STORE_ENABLE=NO \
-            DEVELOPMENT_TEAM=ALUCSWR3FW \
-            CODE_SIGN_IDENTITY="Apple Distribution" \
-            CODE_SIGN_STYLE=Manual \
-            archive 2>&1 | grep -E "error:|warning:|fatal|Build succeeded|Build FAILED" | tail -80 || true
-          
-          echo "🔍 Tentative build-ipa..."
           xcode-project build-ipa \
             --project "App.xcodeproj" \
             --scheme App \
@@ -118,8 +101,7 @@ workflows:
       - name: Verify Game Center in build
         script: |
           echo "🔍 Checking entitlements in final build..."
-          codesign -d --entitlements :- ios/App/build/*.app 2>/dev/null || \
-          codesign -d --entitlements :- ios/App/App.xcarchive/Products/Applications/*.app || true
+          codesign -d --entitlements :- ios/App/build/ios/ipa/*.ipa 2>/dev/null || true
 
     artifacts:
       - ios/App/build/ios/ipa/*.ipa
