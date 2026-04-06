@@ -981,12 +981,17 @@ body.comboActive #combo {
 /* =========================================================================
    📱 MEDIA QUERIES & FIXES
 ========================================================================= */
-/* Cache le menu quand on joue (CORRIGÉ) */
+
+/* Cache le menu quand on joue (GPU VIDEO SAFE) */
 body.playing #menuOverlay,
 body.playing #menuVideo,
 body.playing #galaxyBG,
 body.playing .menuParticles {
-    display: none !important; visibility: hidden !important; opacity: 0 !important; pointer-events: none !important;
+    /* 🔥 JAMAIS de "display: none" sur une <video> matérielle sur mobile ! */
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+    z-index: -100 !important;
 }
 
 /* Mobile Portrait Shop Fix */
@@ -1007,58 +1012,58 @@ body.playing .menuParticles {
     .skinName { font-size: 24px; }
     .skinButton { padding: 10px 0; min-width: 180px; font-size: 14px; }
 }
+
 /* =========================================================================
    📱 TABLET FIX (iPad & Android Tablets)
    Cible les écrans plus larges que les mobiles mais moins que les PC,
    et surtout avec un ratio plus "carré" (4:3 ou 16:10)
 ========================================================================= */
 @media screen and (min-width: 601px) and (max-width: 1180px) {
-
-    /* 1. Réduire la taille du perso dans le shop pour qu'il ne mange pas tout l'écran */
+    /* 1. Réduire la taille du perso dans le shop */
     #shopHeroCanvas {
-        height: 45vh !important; /* On passe de 60vh à 45vh */
+        height: 45vh !important;
         max-width: 60vw;
     }
 
     /* 2. Remonter la zone de contenu */
     .shopContentZone {
-        justify-content: flex-end; /* Pousse vers le bas pour éviter le header */
-        padding-bottom: 140px;     /* Laisse de la place pour les boutons */
+        justify-content: flex-end;
+        padding-bottom: 140px;
     }
 
-    /* 3. Ajuster la taille des textes qui sont souvent trop gros sur tablette */
+    /* 3. Textes */
     .skinName {
-        font-size: 32px; /* Au lieu de 42px */
+        font-size: 32px;
     }
-    
+
     .skinPrice {
         font-size: 16px;
         margin-bottom: 10px;
     }
 
-    /* 4. Le bouton d'action */
+    /* 4. Bouton d'action */
     .skinButton {
         min-width: 220px;
         padding: 14px 0;
         font-size: 16px;
     }
 
-    /* 5. Score en jeu un peu plus petit */
+    /* 5. Score en jeu */
     #uiScore {
         font-size: 50px;
         top: 3%;
     }
-    
-    /* 6. Boutons du menu principal */
+
+    /* 6. Boutons menu principal */
     .menuBtn {
         min-width: 200px;
         padding: 12px 0;
         font-size: 13px;
     }
-    
+
     /* 7. Carte Game Over */
     .gameOverCard {
-        transform: scale(0.9); /* Réduit globalement la fenêtre de fin */
+        transform: scale(0.9);
     }
 }
 /* === ROULETTE CYBERPUNK REACTOR (EXTRA COMPACTE) === */
@@ -7251,30 +7256,22 @@ const MENU_VIDEO_SRC = menuVideo?.dataset?.src || "";
 function startMenuVideo(){
   if (!menuVideo || !MENU_VIDEO_SRC) return;
 
+  // On injecte la source une seule fois pour toute la durée de vie de l'app
   if (!menuVideo.src){
     menuVideo.src = MENU_VIDEO_SRC;
-    menuVideo.load();
   }
 
-  menuVideo.currentTime = 0;
   const p = menuVideo.play();
   if (p && p.catch) p.catch(()=>{});
 }
 
-// Remplace ta fonction à la ligne 1162 par celle-ci :
 function stopMenuVideo(){
   if (!menuVideo) return;
 
   try {
+    // 🛡️ On se contente de mettre en pause. 
+    // ON NE FAIT PLUS removeAttribute("src") NI load() !
     menuVideo.pause();
-    // 🛡️ On attend 100ms que le moteur vidéo ait fini de pauser 
-    // avant de vider le SRC, pour éviter le crash Android.
-    setTimeout(() => {
-        if (uiState === "playing") { // On vérifie qu'on est toujours en jeu
-            menuVideo.removeAttribute("src");
-            menuVideo.load(); 
-        }
-    }, 100);
   } catch(e) {
     console.error("Video Stop Error Safe", e);
   }
