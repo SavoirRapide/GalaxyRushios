@@ -21,6 +21,9 @@ workflows:
           npm install @capacitor/core@^7.0.0 @capacitor/ios@^7.0.0 @capacitor/cli@^7.0.0 --legacy-peer-deps
           npm install @capacitor-community/admob@^8.0.0 --legacy-peer-deps
           npm install @openforge/capacitor-game-connect --legacy-peer-deps
+          npm install @capacitor/local-notifications@^7.0.0 --legacy-peer-deps
+          npm install @capacitor-community/firebase-analytics --legacy-peer-deps
+          npm install @capacitor-community/app-tracking-transparency --legacy-peer-deps
 
       - name: Capacitor Sync
         script: |
@@ -46,13 +49,10 @@ workflows:
       - name: Configure Info.plist
         script: |
           cd ios/App/App
-          # AdMob
           /usr/libexec/PlistBuddy -c "Delete :GADApplicationIdentifier" Info.plist || true
           /usr/libexec/PlistBuddy -c "Add :GADApplicationIdentifier string $ADMOB_APP_ID" Info.plist
-          # ATT - App Tracking Transparency
           /usr/libexec/PlistBuddy -c "Delete :NSUserTrackingUsageDescription" Info.plist || true
-          /usr/libexec/PlistBuddy -c "Add :NSUserTrackingUsageDescription string 'We use tracking to show you personalized ads and improve your experience.'" Info.plist
-          # Version
+          /usr/libexec/PlistBuddy -c "Add :NSUserTrackingUsageDescription string 'This identifier will be used to deliver personalized ads and support the development of Galaxy Rush.'" Info.plist
           /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString 1.0.6" Info.plist
           /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $BUILD_NUMBER" Info.plist
 
