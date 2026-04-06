@@ -31,13 +31,13 @@ workflows:
 
       - name: Patch Package.swift for capacitor-swift-pm 8.x
         script: |
-          echo "🔍 Patch de TOUS les Package.swift (ios + node_modules)..."
+          echo "🔍 Patch ciblé capacitor-swift-pm uniquement..."
           for PKG in $(find . -name "Package.swift" | xargs grep -l "capacitor-swift-pm" 2>/dev/null); do
             echo "📝 Patching $PKG"
-            sed -i '' 's/from: "[0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*"/from: "8.0.0"/g' "$PKG" || true
-            sed -i '' 's/exact: "[0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*"/.upToNextMajor(from: "8.0.0")/g' "$PKG" || true
-            sed -i '' 's/\.upToNextMinor(from: "[0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*")/.upToNextMajor(from: "8.0.0")/g' "$PKG" || true
-            sed -i '' 's/\.\.<[0-9][0-9]*\.0\.0/..<9.0.0/g' "$PKG" || true
+            sed -i '' '/capacitor-swift-pm/s/from: "[0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*"/from: "8.0.0"/' "$PKG" || true
+            sed -i '' '/capacitor-swift-pm/s/exact: "[0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*"/.upToNextMajor(from: "8.0.0")/' "$PKG" || true
+            sed -i '' '/capacitor-swift-pm/s/\.upToNextMinor(from: "[0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*")/.upToNextMajor(from: "8.0.0")/' "$PKG" || true
+            sed -i '' '/capacitor-swift-pm/s/\.\.<[0-9][0-9]*\.0\.0/..<9.0.0/' "$PKG" || true
             echo "✅ Contenu final de $PKG :"
             cat "$PKG"
           done
