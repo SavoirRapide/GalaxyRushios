@@ -7204,11 +7204,16 @@ function resetLoopTimers(hard = false){
 }
 
 // ================= GAME OVER / MENU =================
-function goToMenu(){
-  _startRunLock = false;          
-  setUIState("menu");
-  document.body.classList.remove("playing");
+function goToMenu() {
+  _startRunLock = false;
   gameOverTriggered = false;
+  document.body.classList.remove("playing");
+
+  // 🔥 1. Libère la mémoire GPU du Canvas AVANT de lancer le menu
+  stopGameLoop();
+
+  // 📺 2. Change l'état de l'UI (ce qui lance la vidéo et la musique proprement)
+  setUIState("menu");
 }
 
 function onGameOverCleanup(){
@@ -7290,42 +7295,6 @@ function stopGameLoop(){
   fxCalm = 0.6;
 }
 
-
-// ================= MENU ENTRY (CORRIGÉ : AUDIO & SYNC) =================
-function startMenu(){
-  // 🛡️ FIX CRITIQUE : On utilise la fonction centrale au lieu de uiState = "menu"
-  // Cela garantit l'appel à playMusic("menu") et l'arrêt des éléments de jeu.
-  if (typeof setUIState === "function") {
-    setUIState("menu"); 
-  } else {
-    uiState = "menu";
-    gameState = "menu";
-  }
-
-  gameRunning = false;
-  document.body.classList.remove("playing");
-
-  // Arrêt moteur et vidéo
-  stopGameLoop();
-  startMenuVideo();
-
-  // ✅ 1. Stats : Affiche les vrais scores
-  if (typeof updateMenuStats === "function") updateMenuStats();
-
-  // ✅ 2. Pubs : Reset journalier
-  if (typeof checkDailyAdReset === "function") checkDailyAdReset();
-
-  // ✅ 3. UI : Nettoyage popup
-  if (typeof hideMenuAdPopup === "function") hideMenuAdPopup();
-
-  // ✅ 4. Timer Popup (Sécurité Android)
-  setTimeout(() => {
-    // On vérifie qu'on est toujours sur le menu avant d'afficher
-    if (uiState === "menu" && typeof showMenuAdPopup === "function") {
-      showMenuAdPopup();
-    }
-  }, 900);
-}
 // ================= FX FLAGS =================
 let skipHeavyFX = false;
 
@@ -8303,7 +8272,7 @@ function hardRefreshCanvas() {
     }
 }
 /* =========================================================
-    📺 ADMOB MANAGER V8.0 (RGPD + ATT + SÉCURITÉ RÉCOMPENSE)
+   📺 ADMOB MANAGER V8.0 (RGPD + SÉCURITÉ RÉCOMPENSE)
 ========================================================= */
 const AdMob = window.Capacitor && window.Capacitor.Plugins.AdMob;
 
@@ -8328,7 +8297,7 @@ async function initAds() {
     if (!AdMob) return;
 
     try {
-        console.log("AdMob: Vérification du consentement RGPD/ATT...");
+        console.log("AdMob: Vérification du consentement RGPD...");
         let consentInfo = await AdMob.requestConsentInfo();
         
         if (!consentInfo.canRequestAds && consentInfo.isConsentFormAvailable) {
@@ -8344,8 +8313,8 @@ async function initAds() {
             return; 
         }
 
-        // Initialisation : Gère aussi l'alerte ATT native d'Apple en arrière-plan
-        await AdMob.initialize({ requestTrackingAuthorization: true });
+        // ⚠️ Modification ici : On met 'false' car l'ATT est géré manuellement avant !
+        await AdMob.initialize({ requestTrackingAuthorization: false });
         console.log("AdMob: SDK Initialisé !");
 
         await AdMob.prepareInterstitial({ adId: AD_IDS.interstitial, isTesting: AD_IDS.isTesting, npa: !isPersonalized });
@@ -8353,7 +8322,7 @@ async function initAds() {
 
         AdMob.addListener('onRewardedVideoAdReward', handleReward);
 
-        // 📺 FERMETURE REWARD (AVEC TON DÉLAI DE 1200ms POUR iOS)
+        // 📺 FERMETURE REWARD (AVEC DÉLAI DE 1200ms POUR iOS)
         AdMob.addListener('onRewardedVideoAdDismissed', () => {
             console.log("📺 AdMob : Fenêtre de pub fermée.");
             setTimeout(() => {
@@ -8439,37 +8408,60 @@ async function showRewardedAd(onSuccess, onFail) {
 
 window.isAdSystemReady = function() { return canRequestAds; };
 
-// Lancement automatique
-document.addEventListener('deviceready', initAds, false);
-if (window.Capacitor) initAds();
-  // Si tu es dans un fichier JS modulaire, importe le plugin :
-// import { FirebaseAnalytics } from '@capacitor-community/firebase-analytics';
+/* =========================================================
+   🍏 APPLE TRACKING TRANSPARENCY (ATT)
+========================================================= */
+async function requestATT() {
+    if (!window.Capacitor) return;
+    try {
+        const ATT = window.Capacitor.Plugins.AppTrackingTransparency;
+        if (!ATT) return;
+        
+        const { status } = await ATT.getStatus();
+        console.log("🍏 Statut ATT iOS :", status);
+        
+        if (status === 'notDetermined' || status === 'unrequested') {
+            const result = await ATT.requestPermission();
+            console.log("🍏 Résultat ATT :", result.status);
+        }
+    } catch(e) {
+        console.warn("⚠️ Erreur ATT (Ignorée sur Android/Web) :", e);
+    }
+}
 
-// Si tu es directement dans index.html (sans bundler), utilise window.Capacitor.Plugins :
+/* =========================================================
+   📊 FIREBASE ANALYTICS
+========================================================= */
 const FirebaseAnalytics = window.Capacitor && window.Capacitor.Plugins.FirebaseAnalytics;
 
 async function initNativeAnalytics() {
     if (!FirebaseAnalytics) return;
 
     try {
-        // Optionnel : Demande l'autorisation de suivi sur iOS si nécessaire
-        // await FirebaseAnalytics.setCollectionEnabled({ enabled: true });
-
-        // Envoie l'événement d'ouverture !
         await FirebaseAnalytics.logEvent({
             name: "app_open",
             params: {}
         });
-
         console.log("🚀 Firebase Analytics NATIF activé !");
     } catch (e) {
         console.warn("Erreur Analytics Natif:", e);
     }
 }
 
-// Lancer au démarrage
-document.addEventListener('deviceready', initNativeAnalytics, false);
-if (window.Capacitor) initNativeAnalytics();
+/* =========================================================
+   🚀 MASTER INIT (SÉQUENCE DE DÉMARRAGE SÉCURISÉE)
+========================================================= */
+async function initAll() {
+    console.log("⚙️ Démarrage de la séquence système...");
+    
+    await requestATT();       // 🔥 1. ATT EN PREMIER (Bloquant)
+    await initAds();          // 📺 2. AdMob ensuite (RGPD & pubs)
+    initNativeAnalytics();    // 📊 3. Analytics à la fin
+}
+
+// 🎯 Un seul et unique point de lancement !
+document.addEventListener('deviceready', initAll, false);
+if (window.Capacitor) initAll();
 </script>
 </body>
 </html>   
