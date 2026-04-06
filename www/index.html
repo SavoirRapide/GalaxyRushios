@@ -25,7 +25,7 @@
   <!-- ===== iOS (OBLIGATOIRE) ===== -->
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="Jetpack Runner">
+  <meta name="apple-mobile-web-app-title" content="Galaxy Rush">
 
   <!-- ICÔNES -->
   <link rel="icon" href="icon-192.png">
@@ -1229,7 +1229,9 @@ body.playing .menuParticles {
 <audio id="sfxDeath" src="audio/death.mp3" preload="auto"></audio>
 <audio id="sfxIntro" src="audio/intro_burst.mp3" preload="auto"></audio>
 <audio id="sfxOverdrive" src="audio/overdrive_start.mp3" preload="auto"></audio>
-
+<audio id="bgmMenu" src="audio/Menu.mp3" loop preload="auto"></audio>
+<audio id="bgmGame" src="audio/musicgame.mp3" loop preload="auto"></audio>
+  
  <div id="overlayIntro">
     <canvas id="introEmbers"></canvas>
     <div class="introContent">
@@ -1526,10 +1528,6 @@ let lastOverdrivePct = -1;
 let reviveInvincible = false;
 let reviveInvTimer = 0;
 let overdriveEndingFlag = false;
-let newRecordThisRun = false;
-let leaderboardShownThisGameOver = false; // 🛡️ Sécurité anti-doublon
-
-
 // =========================================================
 // 1. BACKGROUND & INIT CANVAS
 // =========================================================
@@ -1630,18 +1628,19 @@ function resizeCanvas(){
   // 4. CALCUL DU SCALE UI (C'est là que tout se joue !)
   // Si l'écran est "étroit" (ratio < 1.9, ex: 16:9 classique), on réduit l'UI
   // pour éviter l'effet "zoomé"
-const screenRatio = w / h;
-let targetUiScale = gameScale;
+  const screenRatio = w / h;
+  let targetUiScale = gameScale;
 
-if (screenRatio < 1.9) {
-    targetUiScale = gameScale * 0.85; 
-}
+  if (screenRatio < 1.9) {
+      // Écran "Carré" ou 16:9 : On réduit l'échelle UI de 15% par rapport au jeu
+      targetUiScale = gameScale * 0.85; 
+  }
 
-// Plus agressif sur les écrans bas
-const maxScale = h < 350 ? 0.65 : h < 450 ? 0.80 : 1.0;
-const uiScale = Math.min(Math.max(targetUiScale, 0.45), maxScale);
-
-document.documentElement.style.setProperty('--ui-scale', uiScale);
+  // On clamp pour rester lisible (ni minuscule, ni géant)
+  const uiScale = Math.min(Math.max(targetUiScale, 0.50), 1.1);
+  
+  // On applique la variable CSS
+  document.documentElement.style.setProperty('--ui-scale', uiScale);
 }
 // Listeners
 window.addEventListener("resize", resizeCanvas, { passive:true });
@@ -1960,129 +1959,50 @@ if (touchZone){
 
 
 /* =========================================================
-   🔊 AUDIO MANAGER V18 (FINAL - RAM BUFFERING & MUTE FIX)
-   - Charge le son en RAM (Anti-coupure Android)
-   - Gestion du volume via GainNodes (Mute instantané)
+   🔊 AUDIO MANAGER V19 (IOS NATIVE FIX - MUTE CORRIGÉ)
+   - Utilisation des balises <audio> standards
+   - Contourne le bug iOS qui ignore la propriété .volume
 ========================================================= */
 
 const sfxDeath = document.getElementById("sfxDeath");
 const sfxOverdrive = document.getElementById("sfxOverdrive");
 const sfxIntro = document.getElementById("sfxIntro");
 
-// --- CONTEXTE AUDIO ---
-const AudioContext = window.AudioContext || window.webkitAudioContext;
-let audioCtx = new AudioContext();
+const bgmMenu = document.getElementById("bgmMenu");
+const bgmGame = document.getElementById("bgmGame");
 
-// --- CONFIGURATION ---
 const audioSettings = JSON.parse(localStorage.getItem("audioSettings") || "null") 
       || { music: 70, sfx: 80, mute: false };
 
 let currentMusicState = "none";
 let audioUnlocked = false;
 
-// STOCKE LES SONS EN RAM ICI
-const SOUNDS = {
-    menu: { buffer: null, source: null, gainNode: null, url: 'audio/Menu.mp3' },
-    game: { buffer: null, source: null, gainNode: null, url: 'audio/musicgame.mp3' }
-};
-
-// --- 1. LE CHARGEUR RAM ---
-async function loadSoundToRAM(key) {
-    try {
-        const response = await fetch(SOUNDS[key].url);
-        const arrayBuffer = await response.arrayBuffer();
-        const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
-        SOUNDS[key].buffer = audioBuffer;
-        console.log(`✅ ${key} chargé en RAM`);
-    } catch (e) {
-        console.error(`❌ Erreur chargement ${key}:`, e);
-    }
-}
-
-// Chargement initial
-loadSoundToRAM('menu');
-loadSoundToRAM('game');
-
-// --- 2. LE LECTEUR DE BUFFER (AVEC GESTION MUTE) ---
-function playBuffer(key, volumeTarget) {
-    const sound = SOUNDS[key];
-    if (!sound.buffer) return; 
-
-    // Stop ancienne instance
-    stopBuffer(key);
-
-    // Création Source & Gain
-    const source = audioCtx.createBufferSource();
-    source.buffer = sound.buffer;
-    source.loop = true;
-
-    const gainNode = audioCtx.createGain();
-    
-    // 🛡️ FIX MUTE CRITIQUE : On vérifie le mute AVANT de donner le volume
-    // Si mute est coché, le volume de départ EST ZÉRO.
-    const startVol = audioSettings.mute ? 0 : volumeTarget;
-    gainNode.gain.value = startVol; 
-    
-    // Connexions
-    source.connect(gainNode);
-    gainNode.connect(audioCtx.destination);
-
-    source.start(0);
-    
-    // Sauvegarde des références
-    sound.source = source;
-    sound.gainNode = gainNode;
-}
-
-function stopBuffer(key) {
-    const sound = SOUNDS[key];
-    if (sound.source) {
-        try { 
-            // Fade out rapide
-            if(sound.gainNode) {
-                sound.gainNode.gain.setTargetAtTime(0, audioCtx.currentTime, 0.1);
-            }
-            setTimeout(() => {
-                if(sound.source) sound.source.stop();
-                sound.source = null;
-                sound.gainNode = null;
-            }, 150);
-        } catch(e){}
-    }
-}
-
-// --- 3. FONCTION PRINCIPALE (PLAY MUSIC) ---
+// --- 1. FONCTION PRINCIPALE (PLAY MUSIC) ---
 function playMusic(which) {
     if (currentMusicState === which) return;
     currentMusicState = which;
 
-    // Volume de base (sans prendre en compte le mute ici, c'est géré dans playBuffer)
-    const vol = Math.max(0, Math.min(1, audioSettings?.music / 100 || 0.6));
-
-    if (audioCtx.state === 'suspended') audioCtx.resume();
+    applyAudioSettings(); // Applique le MUTE avant de jouer
 
     if (which === "game") {
-        stopBuffer('menu');
-        playBuffer('game', vol);
+        if (bgmMenu) bgmMenu.pause();
+        if (bgmGame) { bgmGame.currentTime = 0; bgmGame.play().catch(()=>{}); }
     } 
     else if (which === "menu") {
-        stopBuffer('game');
-        playBuffer('menu', vol * 0.9);
+        if (bgmGame) bgmGame.pause();
+        if (bgmMenu) { bgmMenu.currentTime = 0; bgmMenu.play().catch(()=>{}); }
     } 
     else {
-        stopBuffer('menu');
-        stopBuffer('game');
+        if (bgmMenu) bgmMenu.pause();
+        if (bgmGame) bgmGame.pause();
         currentMusicState = "none";
     }
 }
 
-// --- 4. SFX (Compatible Mute) ---
+// --- 2. SFX ---
 function playSFX(originalTrack, volumeScale = 1.0) {
-    // Si MUTE est activé, on ne joue rien du tout
-    if (!originalTrack || audioSettings.mute) return;
-    
-    if (audioCtx.state === 'suspended') audioCtx.resume();
-
+    // Si mute global OU slider SFX à 0, on ne joue rien
+    if (!originalTrack || audioSettings.mute || audioSettings.sfx === 0) return;
     const clone = originalTrack.cloneNode();
     clone.volume = Math.max(0, Math.min(1, (audioSettings.sfx / 100) * volumeScale));
     clone.play().catch(()=>{});
@@ -2092,23 +2012,24 @@ function playSFX(originalTrack, volumeScale = 1.0) {
 function stopMusic() { playMusic("none"); }
 
 /* =========================
-   LISTENERS UI (MUTE INSTANTANÉ)
+   3. LISTENERS UI & MUTE iOS
 ========================= */
 const optMusic = document.getElementById("optMusic");
 const optSfx   = document.getElementById("optSfx");
 const optMute  = document.getElementById("optMute");
 
-// Fonction Maître du Volume
 function applyAudioSettings() {
-    // Si mute coché, volume cible = 0. Sinon, volume du slider.
-    const vol = audioSettings.mute ? 0 : (audioSettings.music / 100);
+    // 🔥 LE FIX EST ICI : iOS ignore volume=0, on DOIT forcer .muted
+    const isMuted = audioSettings.mute || audioSettings.music === 0;
+    const vol = isMuted ? 0 : Math.max(0, Math.min(1, audioSettings.music / 100));
     
-    // On applique immédiatement aux musiques en cours
-    if (SOUNDS.menu.gainNode) {
-        SOUNDS.menu.gainNode.gain.setTargetAtTime(vol * 0.9, audioCtx.currentTime, 0.05);
+    if (bgmMenu) {
+        bgmMenu.volume = vol * 0.9; // Pour Android/PC
+        bgmMenu.muted = isMuted;    // Obligatoire pour iOS
     }
-    if (SOUNDS.game.gainNode) {
-        SOUNDS.game.gainNode.gain.setTargetAtTime(vol, audioCtx.currentTime, 0.05);
+    if (bgmGame) {
+        bgmGame.volume = vol;       // Pour Android/PC
+        bgmGame.muted = isMuted;    // Obligatoire pour iOS
     }
 }
 
@@ -2120,7 +2041,7 @@ if (optMusic && optSfx && optMute) {
     optMusic.addEventListener("input", () => {
         audioSettings.music = +optMusic.value;
         localStorage.setItem("audioSettings", JSON.stringify(audioSettings));
-        applyAudioSettings(); // Mise à jour live
+        applyAudioSettings();
     });
 
     optSfx.addEventListener("input", () => {
@@ -2131,46 +2052,31 @@ if (optMusic && optSfx && optMute) {
     optMute.addEventListener("change", () => {
         audioSettings.mute = optMute.checked;
         localStorage.setItem("audioSettings", JSON.stringify(audioSettings));
-        
-        // Mute Physique (Coupe tout immédiatement)
-        if (audioSettings.mute) {
-            if (SOUNDS.menu.gainNode) SOUNDS.menu.gainNode.gain.value = 0;
-            if (SOUNDS.game.gainNode) SOUNDS.game.gainNode.gain.value = 0;
-        } else {
-            // Unmute : On rétablit le volume
-            applyAudioSettings();
-            
-            // Relance sécurité si le moteur s'est endormi
-            if (currentMusicState !== "none" && audioCtx.state === 'suspended') {
-                audioCtx.resume();
-            }
-        }
+        applyAudioSettings(); // Coupe ou remet la musique instantanément
     });
 }
 
 function unlockAllAudio() {
   if (audioUnlocked) return;
   audioUnlocked = true;
-  if (audioCtx.state === 'suspended') audioCtx.resume();
-  [sfxDeath, sfxIntro, sfxOverdrive].forEach(snd => { if(snd) snd.load(); });
+  [sfxDeath, sfxIntro, sfxOverdrive, bgmMenu, bgmGame].forEach(snd => { if(snd) snd.load(); });
 }
 
 document.addEventListener("visibilitychange", () => {
     if (document.hidden) {
-        // L'app passe en arrière-plan (Pub, SMS, Verrouillage)
-        audioCtx.suspend();
         if (gameRunning) {
             window._wasRunning = true;
-            stopLoop(); // Coupe le moteur proprement
+            stopLoop();
         }
+        if (bgmMenu && !bgmMenu.paused) bgmMenu.pause();
+        if (bgmGame && !bgmGame.paused) bgmGame.pause();
     } else {
-        // L'app revient au premier plan
-        audioCtx.resume();
         if (window._wasRunning) {
             window._wasRunning = false;
-            // startLoop() contient déjà "lastTS = 0" ce qui empêche le saut temporel !
             startLoop(); 
         }
+        // Relance la musique en revenant sur l'app
+        playMusic(currentMusicState);
     }
 });
 /* =========================================
@@ -2420,6 +2326,7 @@ let _lastCombo = -1;
 let coinsCollected = 0;
 let pendingCoins   = 0;
 
+let newRecordThisRun = false;
 /* =========================================================
    💾 DATA & SKIN ENGINE V2 (ORDRE CORRIGÉ)
 ========================================================= */
@@ -2966,12 +2873,11 @@ function executeSpin() {
 let canContinueThisRun = true;
 let isWatchingAd = false;
 let continueTimeout = null;
-
- 
+let leaderboardShownThisGameOver = false;
+let reviveAttempted = false;
 
 function maybeShowLeaderboardAfterGameOver() {}
 
-// 🛡️ FIX : hideContinuePopup devient "bête". Elle ne gère QUE l'interface visuelle.
 function hideContinuePopup() {
     const popup = document.getElementById("continuePopup");
     if (continueTimeout) clearTimeout(continueTimeout);
@@ -2979,17 +2885,12 @@ function hideContinuePopup() {
     if (popup) popup.style.display = "none";
 }
 
-// 🛡️ FIX : Câblage des callbacks onAccept et onRefuse
-function showContinuePopup(durationSec = 4.0, callbacks = {}) {
+function showContinuePopup(durationSec = 4.0) {
     const popup = document.getElementById("continuePopup");
     const bar = document.getElementById("continueBar");
     const btn = document.getElementById("continueAdBtn");
-    const skipBtn = document.getElementById("btnSkip"); // Si tu as un bouton pour passer
 
-    if (!popup || !bar || !btn || !canContinueThisRun) {
-        if (callbacks.onRefuse) callbacks.onRefuse();
-        return;
-    }
+    if (!popup || !bar || !btn || !canContinueThisRun) return;
 
     hideContinuePopup();
     popup.style.display = "flex";
@@ -2998,31 +2899,15 @@ function showContinuePopup(durationSec = 4.0, callbacks = {}) {
 
     bar.style.transition = "none";
     bar.style.width = "100%";
-    void bar.offsetWidth;
+    void bar.offsetWidth; 
 
     requestAnimationFrame(() => {
         bar.style.transition = `width ${durationSec}s linear`;
         bar.style.width = "0%";
     });
 
-    // ACTION : Le joueur clique sur le bouton de pub
-    btn.onclick = () => {
-        hideContinuePopup();
-        if (callbacks.onAccept) callbacks.onAccept();
-    };
-
-    // ACTION : Le joueur clique sur "Non merci" (s'il existe)
-    if (skipBtn) {
-        skipBtn.onclick = () => {
-            hideContinuePopup();
-            if (callbacks.onRefuse) callbacks.onRefuse();
-        };
-    }
-
-    // ACTION : Le temps est écoulé
     continueTimeout = setTimeout(() => {
-        hideContinuePopup(); 
-        if (callbacks.onRefuse) callbacks.onRefuse();
+        hideContinuePopup();
     }, durationSec * 1000);
 }
 
@@ -3031,31 +2916,39 @@ function showContinuePopup(durationSec = 4.0, callbacks = {}) {
 ========================================= */
 function handleContinueAd() {
     if (isWatchingAd || !canContinueThisRun) return;
-
     isWatchingAd = true;
-    canContinueThisRun = false; // On consomme le revive
+    canContinueThisRun = false;
+    reviveAttempted = true;
 
-    // 🔇 COUPURE AUDIO
+    const btn = document.getElementById("continueAdBtn");
+    if (btn) btn.innerHTML = `<span class="btn-txt">LOADING AD...</span>`;
+    if (continueTimeout) clearTimeout(continueTimeout);
+
     playMusic("none");
+
+    let adSafetyTimeout = setTimeout(() => {
+        console.warn("⚠️ Ad fallback triggered (Timeout)");
+        isWatchingAd = false;
+        hideContinuePopup();
+    }, 10000);
 
     if (typeof showRewardedAd === "function") {
         showRewardedAd(
-            () => { // SUCCÈS
-                isWatchingAd = false; 
+            () => {
+                clearTimeout(adSafetyTimeout);
                 revivePlayerAfterAd();
-            },
-            () => { // ÉCHEC / FERMETURE SANS RÉCOMPENSE
                 isWatchingAd = false;
-                playMusic("none");
-                // 🛡️ FIX : Si la pub échoue, c'est un game over définitif
-                const s = Math.floor(score || 0);
-                finalizeAbsoluteGameOver(s);
+            },
+            () => {
+                clearTimeout(adSafetyTimeout);
+                isWatchingAd = false;
+                hideContinuePopup(); 
             }
         );
     } else {
+        clearTimeout(adSafetyTimeout);
         isWatchingAd = false;
-        const s = Math.floor(score || 0);
-        finalizeAbsoluteGameOver(s);
+        hideContinuePopup();
     }
 }
 
@@ -3063,42 +2956,38 @@ function handleContinueAd() {
    REVIVE PLAYER (CORRIGÉ - FIX TACTILE COMPLET)
 ========================================= */
 function revivePlayerAfterAd() {
-    // 🛡️ FIX CRITIQUE : C'est SEULEMENT ici qu'on l'autorise à mourir à nouveau
-    gameOverTriggered = false;
-
-    // 1. UI RESET
+    hideContinuePopup();
+    
     if (overlayGameOver) {
         overlayGameOver.classList.remove("visible");
         overlayGameOver.style.display = "none";
     }
 
-    setUIState("playing");
-    gameRunning = false;
+    setUIState("playing"); 
+    gameRunning = false; 
 
-    // 2. RESET PHYSIQUE DU JOUEUR
     player.x = 100;
     player.y = BASE_H * 0.5;
     player.vy = 0;
     player.width = BASE_PLAYER_W;
     player.height = BASE_PLAYER_H;
+    
     jetOn = false;
 
-    // 3. NETTOYAGE DES FX FIGÉS
     shockwave = null;
     bloom = null;
     dyingFromCircle = null;
-    overdriveActive = false;
+
+    overdriveActive = false; 
     overdriveTimer = 0;
     player.invincible = true;
 
-    // 4. NETTOYAGE ZONE
     obstacles = obstacles.filter(o => o.x > player.x + 800);
     bullets = [];
-    lastSpawnTime = renderTime + 1000;
+    
+    lastSpawnTime = renderTime + 1000; 
+    draw(); 
 
-    draw();
-
-    // 5. OVERLAY "READY?"
     const oldOverlay = document.getElementById("resumeOverlay");
     if (oldOverlay) oldOverlay.remove();
 
@@ -3109,7 +2998,7 @@ function revivePlayerAfterAd() {
         display: flex; flex-direction: column; align-items: center; justify-content: center;
         background: rgba(0,0,0,0.5); z-index: 99999; cursor: pointer; pointer-events: auto !important;
     `;
-
+    
     resumeOverlay.innerHTML = `
         <div style="font-family:Orbitron, sans-serif; font-size:40px; color:#00f0ff; text-shadow:0 0 15px cyan; margin-bottom:10px;">READY?</div>
         <div style="font-family:Rajdhani, sans-serif; font-size:20px; color:white; letter-spacing:2px; animation: blink 1s infinite;">TAP TO START</div>
@@ -3117,14 +3006,15 @@ function revivePlayerAfterAd() {
 
     document.body.appendChild(resumeOverlay);
 
-    // 6. RELANCE DU JEU
-    const resumeGame = (e) => {
-        if (e) {
-            e.preventDefault();
-            e.stopPropagation();
-        }
+    let resumed = false; 
 
+    const resumeGame = (e) => {
+        if (resumed) return;
+        resumed = true;
+        if (e) { e.preventDefault(); e.stopPropagation(); }
+        
         resumeOverlay.remove();
+        
         gameRunning = true;
         if (typeof lastTS !== "undefined") lastTS = performance.now();
         startLoop();
@@ -3133,10 +3023,10 @@ function revivePlayerAfterAd() {
             playMusic("game");
         }
 
-        document.body.classList.add("overdriveActive");
-
-        setTimeout(() => {
-            player.invincible = false;
+        document.body.classList.add("overdriveActive"); 
+        
+        setTimeout(() => { 
+            player.invincible = false; 
             document.body.classList.remove("overdriveActive");
         }, 3000);
     };
@@ -3145,63 +3035,51 @@ function revivePlayerAfterAd() {
     resumeOverlay.ontouchstart = resumeGame;
 }
 
-let hasMultiplied = false; // Sécurité pour empêcher de multiplier 10 fois
+let hasMultiplied = false;
 
-// 🛡️ FONCTION : Gère la fin ABSOLUE (quand on est sûr que le joueur ne revivra pas)
-// 🛡️ FONCTION : Gère la fin ABSOLUE (quand on est sûr que le joueur ne revivra pas)
-function finalizeAbsoluteGameOver(finalScore) {
-    console.log("🏁 Fin absolue de la partie. Score final :", finalScore);
-
-    // 1. On l'enregistre d'abord en local pour être sûr de ne pas le perdre
-    // Cette fonction vérifie déjà si le score est meilleur que le précédent envoyé
-    saveScoreOffline(finalScore);
-
-    // 2. On tente immédiatement de l'envoyer aux serveurs Google
-    // flushPendingScores() va parcourir les scores en attente et essayer de les "pousser"
-    flushPendingScores();
-
-    // 3. Optionnel : Affichage du classement après un petit délai (1.2s)
-    // Cela laisse le temps aux animations de Game Over de se finir
-    if (typeof maybeShowLeaderboardAfterGameOver === "function") {
-        maybeShowLeaderboardAfterGameOver(1200);
-    }
-}
-
-async function handleGameOver() {
+function handleGameOver() {
     _startRunLock = false;
     if (gameOverTriggered) return;
     gameOverTriggered = true;
 
-    leaderboardShownThisGameOver = false;
-
-    setUIState("gameover");
+    setUIState("gameover"); 
     pauseLoop();
 
     const tz = document.getElementById("touchZone");
     if (tz) tz.style.pointerEvents = "none";
 
     const s = Math.floor(score || 0);
-    const previousBest = bestScore || 0;
-
+    const previousBest = bestScore || 0; 
+    
     if (s > previousBest) {
         bestScore = s;
-        newRecordThisRun = true;
+        newRecordThisRun = true; 
     }
 
-    // Sauvegarde initiale des pièces et du score en local
     coinsBank += (coinsCollected || 0);
     Player.coins = coinsBank;
     Player.bestScore = bestScore;
-    if (typeof Player.save === "function") Player.save();
+    Player.save();
 
-    if (typeof updateMenuStats === "function") updateMenuStats();
+    // 🏆 APPLE GAME CENTER : ENVOI DU SCORE
+    if (newRecordThisRun && bestScore > 0) {
+        const GameConnect = window.Capacitor && window.Capacitor.Plugins.GameConnect;
+        if (GameConnect) {
+            console.log("🍏 Envoi du nouveau record au Game Center :", bestScore);
+            GameConnect.submitScore({
+                leaderboardID: "galaxyrush.bestscore",
+                totalScoreAmount: bestScore
+            }).catch(e => console.warn("Erreur Game Center :", e));
+        }
+    }
 
-    // ⚡ FIX UX : On remplit l'UI Game Over TOUT DE SUITE 
+    if (typeof updateMenuStats === 'function') updateMenuStats();
+
     safeText(finalScoreEl, s.toLocaleString());
     safeText(finalBestEl, (bestScore || 0).toLocaleString());
     safeText(finalCoinsEl, (coinsCollected || 0).toLocaleString());
 
-    // --- 💰 GESTION DU BOUTON MULTIPLICATEUR ---
+    // --- 💰 BOUTON MULTIPLICATEUR ---
     const multiplyBtn = document.getElementById("multiplyBtn");
     if (multiplyBtn) {
         if (coinsCollected > 0 && !hasMultiplied) {
@@ -3214,43 +3092,31 @@ async function handleGameOver() {
         }
     }
 
-    // --- 🏆 GESTION NEW RECORD ---
- const nrEl = document.getElementById("newRecord");
-const rankBtn = document.getElementById("rankChangedBtn");
+    // --- 🏆 NEW RECORD UI ---
+    const nrEl = document.getElementById("newRecord");
+    const rankBtn = document.getElementById("rankChangedBtn");
 
-if (newRecordThisRun) {
-    nrEl.style.display = "block";
-    requestAnimationFrame(() => {
-        nrEl.style.opacity = "1";
-        nrEl.style.transform = "scale(1)";
-    });
-    if (rankBtn) rankBtn.style.display = "block";
-} else {
-    nrEl.style.display = "none";
-    nrEl.style.opacity = "0";
-    nrEl.style.transform = "scale(0.6)";
-    if (rankBtn) rankBtn.style.display = "none";
-}
-    // --- DEBUG REVIVE ---
-    console.log("🛑 DEBUG REVIVE :", {
-        canContinue: canContinueThisRun,
-        adReady: typeof isAdSystemReady === "function" ? isAdSystemReady() : "Fonction manquante !"
-    });
-
-    // --- 🔀 SÉPARATION DU FLOW (REVIVE VS LEADERBOARD) ---
-    if (canContinueThisRun && isAdSystemReady()) {
-        // 🛡️ FIX : Passage des callbacks propres !
-        showContinuePopup(4.5, {
-            onAccept: () => {
-                handleContinueAd();
-            },
-            onRefuse: () => {
-                finalizeAbsoluteGameOver(s);
-            }
-        });
+    if (newRecordThisRun) {
+        if (nrEl) {
+            nrEl.style.display = "block";
+            requestAnimationFrame(() => {
+                nrEl.style.opacity = "1";
+                nrEl.style.transform = "scale(1)";
+            });
+        }
+        if (rankBtn) rankBtn.style.display = "block";
     } else {
-        // Cas 2 : Fin absolue de la partie (Pas de revive possible)
-        finalizeAbsoluteGameOver(s);
+        if (nrEl) {
+            nrEl.style.display = "none";
+            nrEl.style.opacity = "0";
+            nrEl.style.transform = "scale(0.6)";
+        }
+        if (rankBtn) rankBtn.style.display = "none";
+    }
+
+    // REVIVE si dispo, sinon rien
+    if (canContinueThisRun && isAdSystemReady()) {
+        showContinuePopup(4.5);
     }
 }
 // ================================
@@ -7148,22 +7014,22 @@ function jetStop(){
 
 
 // ================= RUN RESET (VERSION FINALE) =================
-function resetRun() {
+function resetRun(){
   // --- 1. PLAYER PHYSICS ---
   player.x = 100;
   player.y = BASE_H / 2;
-  player.width = BASE_PLAYER_W;
+  player.width  = BASE_PLAYER_W;
   player.height = BASE_PLAYER_H;
   player.vy = 0;
 
   jetOn = false;
-
+  
   // --- 2. SYSTÈME DE PARTICULES ---
   if (playerParticles) playerParticles.length = 0;
   if (particles) particles.length = 0;
-
-  poolIndex = 0;
-  if (typeof particlePool !== "undefined") {
+  
+  poolIndex = 0; 
+  if (typeof particlePool !== 'undefined') {
     for (let i = 0; i < particlePool.length; i++) {
       particlePool[i].active = false;
       particlePool[i]._inList = false;
@@ -7181,32 +7047,31 @@ function resetRun() {
   combo = 1;
   lastCoinTime = 0;
 
-  // 🔥 FIX OVERDRIVE COMPLET
+  // 🔥 FIX OVERDRIVE COMPLET 🔥
   overdriveActive = false;
-  overdriveTimer = 0;
-  // if (typeof overdriveGauge !== "undefined") overdriveGauge = 0;
+  overdriveTimer = 0; 
+  // if (typeof overdriveGauge !== "undefined") overdriveGauge = 0; 
 
   // --- 5. SPAWN & DIFFICULTÉ ---
-  lastSpawn = -5000;
-  lastSpawnTime = -5000;
+  lastSpawn = -5000; 
+  lastSpawnTime = -5000; 
   lastTrailSpawn = 0;
 
   // Reset Cache Position
   farRightCache = 0;
   farRightFrame = -1;
 
-  obstacleSpeed = 3.8;
+  obstacleSpeed = 3.8; 
   lastType = null;
-
-  // 🔥 IMPORTANT : reset historique danger
-  recentHazards = [];
+  
+  recentHazards = []; 
 
   // --- 6. FX & VISUELS ---
   shake = 0;
   shakeTime = 0;
   shockwave = null;
   bloom = null;
-
+  
   lastBarTime = 0;
   dyingTimer = 0;
   dyingFromCircle = null;
@@ -7217,44 +7082,43 @@ function resetRun() {
   newRecordThisRun = false;
   canContinueThisRun = true;
   isWatchingAd = false;
-  leaderboardShownThisGameOver = false;
-
+  leaderboardShownThisGameOver = false; // 🍎 Sécurité anti-doublon
+  reviveAttempted = false;              // 🍎 Sécurité UX post-pub
+  
   const nrEl = document.getElementById("newRecord");
   if (nrEl) {
-    nrEl.style.display = "none";
-    nrEl.style.opacity = "0";
-    nrEl.style.transform = "scale(0.6)";
+      nrEl.style.display = "none"; 
+      nrEl.style.opacity = "0";
+      nrEl.style.transform = "scale(0.6)";
   }
-// ← AJOUTER ICI
-const rankBtn = document.getElementById("rankChangedBtn");
-if (rankBtn) rankBtn.style.display = "none";
+
   // --- 8. UI RESET (SAFE) ---
   if (UI) {
-    if (UI.score) UI.score.textContent = "0";
-    if (UI.coins) UI.coins.textContent = "0";
-    if (UI.combo) UI.combo.textContent = "1";
-
-    if (UI.overFill) {
-      UI.overFill.style.transition = "none";
-      UI.overFill.style.height = "0%";
-      void UI.overFill.offsetWidth;
-      UI.overFill.style.transition = "";
-    }
-
-    if (UI.overBar) UI.overBar.classList.remove("active");
+      if (UI.score) UI.score.textContent = "0";
+      if (UI.coins) UI.coins.textContent = "0";
+      if (UI.combo) UI.combo.textContent = "1";
+      
+      if (UI.overFill) {
+          UI.overFill.style.transition = "none"; 
+          UI.overFill.style.height = "0%";
+          void UI.overFill.offsetWidth; 
+          UI.overFill.style.transition = ""; 
+      }
+      
+      if (UI.overBar) UI.overBar.classList.remove("active");
   }
 
   // --- 9. MULTIPLIER RESET ---
   if (typeof hasMultiplied !== "undefined") {
-    hasMultiplied = false;
+      hasMultiplied = false;
   }
-
+  
   const finalCoinsEl = document.getElementById("finalCoins");
   if (finalCoinsEl) {
-    finalCoinsEl.style.color = "";
-    finalCoinsEl.style.textShadow = "none";
-    finalCoinsEl.style.fontSize = "";
-    finalCoinsEl.style.fontWeight = "";
+      finalCoinsEl.style.color = "";
+      finalCoinsEl.style.textShadow = "none";
+      finalCoinsEl.style.fontSize = "";
+      finalCoinsEl.style.fontWeight = "";
   }
 }
 
@@ -7264,7 +7128,7 @@ if (rankBtn) rankBtn.style.display = "none";
 
 let _startRunLock = false;
 
-function startRun(e) {
+function startRun(e){
   // 🔒 VERROU : anti double-tap
   if (_startRunLock) return;
 
@@ -7273,35 +7137,34 @@ function startRun(e) {
 
   if (uiState === "playing" || gameState === "playing") return;
 
-  _startRunLock = true;
+  _startRunLock = true; 
 
-  if (e) {
+  if (e){
     e.preventDefault();
     e.stopPropagation();
   }
 
-  // 1. NETTOYAGE VISUEL FORCÉ (Anti-BlackScreen)
+  // 1. NETTOYAGE VISUEL FORCÉ
   const intro = document.getElementById("overlayIntro");
-  if (intro) {
+  if (intro){
     intro.style.display = "none";
     intro.style.opacity = "0";
     intro.style.pointerEvents = "none";
   }
-
   const transFX = document.getElementById("transitionFX");
   if (transFX) {
-    transFX.classList.remove("flash");
-    transFX.style.opacity = "0";
+      transFX.classList.remove("flash");
+      transFX.style.opacity = "0";
   }
-
   const nr = document.getElementById("newRecord");
   if (nr) nr.style.display = "none";
 
-  // 2. LOGIQUE JEU
+  // 2. LOGIQUE JEU (Sécurité Ceinture & Bretelles)
   gameOverTriggered = false;
   canContinueThisRun = true;
   isWatchingAd = false;
   leaderboardShownThisGameOver = false;
+  reviveAttempted = false;
 
   if (typeof hideContinuePopup === "function") hideContinuePopup();
   if (typeof stopShopPreviewLoop === "function") stopShopPreviewLoop();
@@ -7309,8 +7172,8 @@ function startRun(e) {
 
   if (!UI?.score && typeof bindUI === "function") bindUI();
   if (!noiseCanvas && typeof initNoise === "function") initNoise();
-
-  // 🔥 essentiel : resize immédiat
+  
+  // 🔥 ESSENTIEL : Resize immédiat
   if (typeof resizeCanvas === "function") resizeCanvas();
 
   // 3. LANCEMENT
@@ -7318,7 +7181,7 @@ function startRun(e) {
   document.body.classList.add("playing");
 
   if (typeof resetRun === "function") resetRun();
-
+  
   // Reset timers techniques
   if (typeof resetLoopTimers === "function") resetLoopTimers(true);
 
@@ -7326,12 +7189,9 @@ function startRun(e) {
   gameRunning = true;
 
   if (typeof startLoop === "function") startLoop();
-
-  // Note : _startRunLock sera réarmé au retour menu / game over
 }
 
 // ================= LOOP TIMERS RESET (UNIFIÉ) =================
-// ⚠️ IMPORTANT : on ne touche pas au "renderTime" sauf quand on démarre un NOUVEAU run.
 function resetLoopTimers(hard = false){
   lastTS  = 0;
   accTime = 0;
@@ -7339,25 +7199,22 @@ function resetLoopTimers(hard = false){
   fxTick  = 0;
 
   if (hard){
-    renderTime = 0; // ✅ seulement au lancement d’un run neuf
+    renderTime = 0; 
   }
 }
 
-
-
 // ================= GAME OVER / MENU =================
 function goToMenu(){
-  _startRunLock = false;          // 🔓 RÉARMEMENT CRITIQUE
+  _startRunLock = false;          
   setUIState("menu");
   document.body.classList.remove("playing");
   gameOverTriggered = false;
 }
 
-
 function onGameOverCleanup(){
   gameRunning = false;
-  stopLoop();               // ✅ coupe RAF
-  resetLoopTimers(false);   // ✅ pas de reset renderTime ici (sinon jitter menu/fx)
+  stopLoop();               
+  resetLoopTimers(false);   
   fxCalm = 0;
 }
 
@@ -8133,6 +7990,38 @@ async function scheduleFreeSpinNotification() {
         console.warn("Erreur Notification:", e);
     }
 }
+  const GameConnect = window.Capacitor && window.Capacitor.Plugins.GameConnect;
+
+async function initGameCenter() {
+    if (!GameConnect) return;
+    try {
+        await GameConnect.signIn();
+        console.log("🍏 Connecté à Apple Game Center !");
+    } catch (e) {
+        console.warn("Connexion Game Center ignorée ou échouée :", e);
+    }
+}
+
+// Lancement au démarrage
+document.addEventListener('deviceready', initGameCenter, false);
+if (window.Capacitor) initGameCenter();
+  async function showLeaderboard() {
+    const GameConnect = window.Capacitor && window.Capacitor.Plugins.GameConnect;
+    if (!GameConnect) {
+        console.warn("GameConnect non disponible (sur navigateur Web ?)");
+        return;
+    }
+    
+    try {
+        console.log("🍏 Ouverture du Leaderboard Game Center...");
+        // Assure-toi que l'ID correspond exactement à celui d'App Store Connect
+        await GameConnect.showLeaderboard({
+            leaderboardID: "galaxyrush.bestscore" 
+        });
+    } catch (e) {
+        console.error("Erreur lors de l'ouverture du Leaderboard :", e);
+    }
+}
 /* =========================================================
    🚀 DOM READY FINAL (ANTI-GHOST CLICK + STARTRUN SAFE)
 ========================================================= */
@@ -8272,9 +8161,11 @@ if (btnPlay) {
   };
 
 bindBtn("optBack", () => setUIState("menu"));
-bindBtn("menuBtn", () => goToMenu());
-bindBtn("btnPrivacy", () => revokeConsent());
-bindBtn("btnLeaderboard", showLeaderboard);
+  bindBtn("menuBtn", () => goToMenu());
+  bindBtn("btnPrivacy", () => revokeConsent()); // AJOUTE CETTE LIGNE
+bindBtn("btnLeaderboard", () => {
+    if (!globalInputLock) showLeaderboard();
+});
   // =========================
   // 6️⃣ RESTART (ANTI-SPAM)
   // =========================
@@ -8412,277 +8303,173 @@ function hardRefreshCanvas() {
     }
 }
 /* =========================================================
-   📺 ADMOB MANAGER V9 + 🏆 PLAY GAMES (100% GOOGLE COMPLIANT)
+    📺 ADMOB MANAGER V8.0 (RGPD + ATT + SÉCURITÉ RÉCOMPENSE)
 ========================================================= */
-
-// --- PLUGINS CAPACITOR ---
 const AdMob = window.Capacitor && window.Capacitor.Plugins.AdMob;
 
-// --- CONFIGURATION ---
 const AD_IDS = {
-    interstitial: 'ca-app-pub-2409581870901167/3630505545',
-    reward:       'ca-app-pub-2409581870901167/7023729724',
-    isTesting:    false // ⚠️ Prod
+    interstitial: 'ca-app-pub-2409581870901167/2901010676', 
+    reward:       'ca-app-pub-2409581870901167/2170712506', 
+    isTesting:    false
 };
 
-const LEADERBOARD_ID = "CgkI84HfzfEDEAIQAQ";
-
-// --- ÉTAT GLOBAL ---
 let canRequestAds = false;
-let playGamesInitialized = false;
-let admobListenersAdded = false;
-window.wasAdJustClosed = false; 
+let isPersonalized = false;
+let rewardGranted = false; 
 
-/* =========================================================
-   1. GESTION PLAY GAMES (Inchangé - Parfait)
-========================================================= */
-let playGamesInitPromise = null;
-let isFlushingScores = false;
+// 💰 LE GESTIONNAIRE DE RÉCOMPENSE
+const handleReward = (reward) => {
+    console.log("📬 AdMob : Signal de récompense reçu !");
+    rewardGranted = true; 
+};
 
-async function getPlayGamesPlugin() { return window.Capacitor && window.Capacitor.Plugins.PlayGames; }
-
-async function initPlayGames(forceRetry = false) {
-    if (playGamesInitialized && !forceRetry) return true;
-    if (playGamesInitPromise) return playGamesInitPromise;
-
-    playGamesInitPromise = (async () => {
-        try {
-            const PlayGames = await getPlayGamesPlugin();
-            if (!PlayGames) return false;
-            
-            console.log("🔄 Initialisation de Play Games...");
-            await PlayGames.login();
-            await new Promise(r => setTimeout(r, 1000));
-            
-            playGamesInitialized = true;
-            console.log("✅ Connecté à Google Play Games !");
-            flushPendingScores();
-            return true;
-        } catch (e) {
-            console.warn("❌ Erreur Play Games (Init) :", e);
-            playGamesInitialized = false;
-            playGamesInitPromise = null;
-            return false;
-        }
-    })();
-    return playGamesInitPromise;
-}
-
-async function ensurePlayGamesReady() {
-    const PlayGames = await getPlayGamesPlugin();
-    if (!PlayGames) return false;
-    if (playGamesInitialized) return true;
-    return await initPlayGames(true);
-}
-
-function getLastScoreSent() { return parseInt(localStorage.getItem("playGames_lastScoreSent")) || -1; }
-function setLastScoreSent(score) { localStorage.setItem("playGames_lastScoreSent", score.toString()); }
-
-function saveScoreOffline(score) {
-    let pending = JSON.parse(localStorage.getItem("playGames_pendingScores") || "[]");
-    if (!pending.includes(score) && score > getLastScoreSent()) {
-        pending.push(score);
-        localStorage.setItem("playGames_pendingScores", JSON.stringify(pending));
-    }
-}
-
-async function flushPendingScores() {
-    if (isFlushingScores) return;
-    isFlushingScores = true;
-    try {
-        let pending = JSON.parse(localStorage.getItem("playGames_pendingScores") || "[]");
-        if (pending.length === 0) return;
-        
-        let remaining = [];
-        for (const s of pending) {
-            const success = await sendScoreNetworkRequest(s);
-            if (!success) remaining.push(s);
-        }
-        if (remaining.length > 0) localStorage.setItem("playGames_pendingScores", JSON.stringify(remaining));
-        else localStorage.removeItem("playGames_pendingScores");
-    } catch (e) {
-        console.warn("⚠️ Erreur inattendue pendant le flush :", e);
-    } finally {
-        isFlushingScores = false; 
-    }
-}
-
-async function sendScoreNetworkRequest(score) {
-    try {
-        const ready = await ensurePlayGamesReady();
-        if (!ready) return false;
-        const PlayGames = await getPlayGamesPlugin();
-        await Promise.race([
-            PlayGames.submitScore({ id: LEADERBOARD_ID, score: score }),
-            new Promise((_, reject) => setTimeout(() => reject(new Error("Timeout API")), 2500))
-        ]);
-        setLastScoreSent(score);
-        return true;
-    } catch (e) {
-        return false;
-    }
-}
-
-async function showLeaderboard() {
-    try {
-        const ready = await ensurePlayGamesReady();
-        if (!ready) return;
-        const PlayGames = await getPlayGamesPlugin();
-        if (window.wasAdJustClosed) {
-            await new Promise(r => setTimeout(r, 800));
-            window.wasAdJustClosed = false;
-        } else {
-            await new Promise(r => setTimeout(r, 100)); 
-        }
-        await PlayGames.showLeaderboard({ id: LEADERBOARD_ID });
-    } catch (e) {
-        console.warn("❌ Erreur Leaderboard :", e);
-    }
-}
-
-/* =========================================================
-   2. GESTION ADMOB (UMP STRICTEMENT CONFORME)
-========================================================= */
-
+// --- 1. INITIALISATION & CONSENTEMENT ---
 async function initAds() {
-    if (!AdMob) {
-        console.log("AdMob: Mode Web (Pas de pubs)");
-        return;
-    }
+    if (!AdMob) return;
 
     try {
-        console.log("AdMob: Mise à jour du consentement RGPD...");
+        console.log("AdMob: Vérification du consentement RGPD/ATT...");
         let consentInfo = await AdMob.requestConsentInfo();
-
+        
         if (!consentInfo.canRequestAds && consentInfo.isConsentFormAvailable) {
             consentInfo = await AdMob.showConsentForm();
         }
 
         canRequestAds = !!consentInfo.canRequestAds;
+        const consentStatus = consentInfo.status || "UNKNOWN";
+        isPersonalized = (consentStatus === "OBTAINED" || consentStatus === "NOT_REQUIRED");
 
         if (!canRequestAds) {
-            console.warn("AdMob: Consentement refusé ou non obtenu.");
-            return; // 🛑 Arrêt total, on n'initialise pas le SDK
+            console.warn("AdMob: Impossible de requêter des pubs (RGPD refusé ou ignoré).");
+            return; 
         }
 
-        console.log("AdMob: Consentement OK, initialisation du SDK...");
+        // Initialisation : Gère aussi l'alerte ATT native d'Apple en arrière-plan
         await AdMob.initialize({ requestTrackingAuthorization: true });
-        console.log("AdMob: SDK initialisé avec succès !");
+        console.log("AdMob: SDK Initialisé !");
 
-        await AdMob.prepareInterstitial({ adId: AD_IDS.interstitial, isTesting: AD_IDS.isTesting });
-        await AdMob.prepareRewardVideoAd({ adId: AD_IDS.reward, isTesting: AD_IDS.isTesting });
+        await AdMob.prepareInterstitial({ adId: AD_IDS.interstitial, isTesting: AD_IDS.isTesting, npa: !isPersonalized });
+        await AdMob.prepareRewardVideoAd({ adId: AD_IDS.reward, isTesting: AD_IDS.isTesting, npa: !isPersonalized });
 
-        if (!admobListenersAdded) {
-            admobListenersAdded = true;
+        AdMob.addListener('onRewardedVideoAdReward', handleReward);
 
-            AdMob.addListener('onRewardedVideoAdReward', () => {
-                if (window.pendingRewardSuccess) {
-                    window.pendingRewardSuccess();
-                    window.pendingRewardSuccess = null;
+        // 📺 FERMETURE REWARD (AVEC TON DÉLAI DE 1200ms POUR iOS)
+        AdMob.addListener('onRewardedVideoAdDismissed', () => {
+            console.log("📺 AdMob : Fenêtre de pub fermée.");
+            setTimeout(() => {
+                if (rewardGranted) {
+                    console.log("✅ RÉCOMPENSE DISTRIBUÉE !");
+                    if (window.pendingRewardSuccess) window.pendingRewardSuccess();
+                } else {
+                    console.log("❌ Aucune récompense validée.");
+                    if (window.pendingRewardFail) window.pendingRewardFail();
                 }
-            });
 
-            AdMob.addListener('onRewardedVideoAdDismissed', () => {
-                window.wasAdJustClosed = true; 
-                if (typeof hardRefreshCanvas === "function") hardRefreshCanvas();
-                if (canRequestAds) AdMob.prepareRewardVideoAd({ adId: AD_IDS.reward, isTesting: AD_IDS.isTesting });
-            });
+                rewardGranted = false;
+                window.pendingRewardSuccess = null;
+                window.pendingRewardFail = null;
 
-            AdMob.addListener('onInterstitialAdDismissed', () => {
-                window.wasAdJustClosed = true; 
-                if (typeof hardRefreshCanvas === "function") hardRefreshCanvas();
-                if (canRequestAds) AdMob.prepareInterstitial({ adId: AD_IDS.interstitial, isTesting: AD_IDS.isTesting });
-            });
-        }
-    } catch (e) {
-        console.warn("AdMob Init Fail:", e);
+                if (typeof hardRefreshCanvas === 'function') hardRefreshCanvas();
+                if (canRequestAds) {
+                    AdMob.prepareRewardVideoAd({ adId: AD_IDS.reward, isTesting: AD_IDS.isTesting, npa: !isPersonalized });
+                }
+            }, 1200); 
+        });
+
+        // 📺 FERMETURE INTERSTITIEL
+        AdMob.addListener('onInterstitialAdDismissed', () => {
+            console.log("📺 AdMob : Interstitiel fermé.");
+            if (typeof hardRefreshCanvas === 'function') hardRefreshCanvas();
+            if (canRequestAds) {
+                AdMob.prepareInterstitial({ adId: AD_IDS.interstitial, isTesting: AD_IDS.isTesting, npa: !isPersonalized });
+            }
+        });
+
+    } catch (e) { 
+        console.warn("AdMob Init Fail:", e); 
     }
 }
 
-async function showGameOverAd() {
-    if (!AdMob || !canRequestAds) return;
-    try { await AdMob.showInterstitial(); } 
-    catch (e) {
-        if (canRequestAds) AdMob.prepareInterstitial({ adId: AD_IDS.interstitial, isTesting: AD_IDS.isTesting });
-    }
-}
-
-async function showRewardedAd(onSuccess, onFail) {
-    if (!AdMob) { if (onSuccess) onSuccess(); return; }
-    if (!canRequestAds) { if (onFail) onFail(); return; }
-
-    try {
-        window.pendingRewardSuccess = onSuccess || null;
-        await AdMob.showRewardVideoAd();
-        setTimeout(() => {
-            if (canRequestAds) AdMob.prepareRewardVideoAd({ adId: AD_IDS.reward, isTesting: AD_IDS.isTesting });
-        }, 1000);
-    } catch (e) {
-        if (onFail) onFail();
-        if (canRequestAds) AdMob.prepareRewardVideoAd({ adId: AD_IDS.reward, isTesting: AD_IDS.isTesting });
-    }
-}
-
-// 🔥 LA TOUCHE FINALE : LE REFRESH CRITIQUE DU CONSENTEMENT
+// --- 2. RÉVOCATION RGPD (LE BOUTON OPTIONS) ---
 async function revokeConsent() {
     if (!AdMob) return;
     try {
-        if (typeof setUIState === "function") setUIState("menu");
-        
-        if (typeof AdMob.showPrivacyOptionsForm === 'function') {
-            await AdMob.showPrivacyOptionsForm();
-            
-            // 🔴 LE FIX MAGIQUE : On met à jour l'état interne après la fermeture du form
-            let consentInfo = await AdMob.requestConsentInfo();
-            canRequestAds = !!consentInfo.canRequestAds;
-            console.log("🔄 Consentement mis à jour post-formulaire:", canRequestAds);
-
-            // Si l'utilisateur a accepté et qu'on n'avait pas initialisé, on initialise !
-            if (canRequestAds && !admobListenersAdded) {
-                await initAds();
-            }
-
-        } else {
-            console.warn("Privacy options form non supporté par ce SDK.");
-        }
+        console.log("AdMob: Réinitialisation du consentement...");
+        if (typeof setUIState === "function") setUIState("menu"); 
+        await AdMob.resetConsentInfo();
+        await initAds(); // Relance le popup
     } catch (e) {
         console.warn("Erreur revokeConsent:", e);
     }
 }
 
-window.isAdSystemReady = function () { return canRequestAds; };
-
-/* =========================================================
-   3. LANCEMENT GLOBAL (BOOTSTRAPPER SÉQUENTIEL)
-========================================================= */
-
-async function bootGame() {
+// --- 3. INTERSTITIAL (GAME OVER) ---
+async function showGameOverAd() {
+    if (!AdMob || !canRequestAds) return;
     try {
-        if (!window.Capacitor) return;
-
-        const isNative = typeof window.Capacitor.isNativePlatform === 'function'
-            ? window.Capacitor.isNativePlatform()
-            : window.Capacitor.isNativePlatform;
-
-        if (isNative) {
-            console.log("📱 Mode natif détecté.");
-            // 🚀 Exécution séquentielle parfaite (Plus de race condition)
-            await initPlayGames();
-            await initAds(); 
-        } else {
-            initAds();
-        }
+        await AdMob.showInterstitial();
     } catch (e) {
-        console.warn("❌ Erreur bootGame :", e);
+        if (canRequestAds) AdMob.prepareInterstitial({ adId: AD_IDS.interstitial, isTesting: AD_IDS.isTesting, npa: !isPersonalized });
     }
 }
 
-// Lancement sécurisé
-if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", bootGame);
-} else {
-    bootGame();
+// --- 4. REWARD (REVIVE & SHOP) ---
+async function showRewardedAd(onSuccess, onFail) {
+    if (!AdMob) { 
+        if(onSuccess) onSuccess(); 
+        return; 
+    }
+    if (!canRequestAds) {
+        if(onFail) onFail();
+        return;
+    }
+
+    try {
+        rewardGranted = false; 
+        window.pendingRewardSuccess = onSuccess;
+        window.pendingRewardFail = onFail; 
+        await AdMob.showRewardVideoAd();
+    } catch (e) {
+        if(onFail) onFail();
+        window.pendingRewardSuccess = null;
+        window.pendingRewardFail = null;
+        if (canRequestAds) AdMob.prepareRewardVideoAd({ adId: AD_IDS.reward, isTesting: AD_IDS.isTesting, npa: !isPersonalized });
+    }
 }
+
+window.isAdSystemReady = function() { return canRequestAds; };
+
+// Lancement automatique
+document.addEventListener('deviceready', initAds, false);
+if (window.Capacitor) initAds();
+  // Si tu es dans un fichier JS modulaire, importe le plugin :
+// import { FirebaseAnalytics } from '@capacitor-community/firebase-analytics';
+
+// Si tu es directement dans index.html (sans bundler), utilise window.Capacitor.Plugins :
+const FirebaseAnalytics = window.Capacitor && window.Capacitor.Plugins.FirebaseAnalytics;
+
+async function initNativeAnalytics() {
+    if (!FirebaseAnalytics) return;
+
+    try {
+        // Optionnel : Demande l'autorisation de suivi sur iOS si nécessaire
+        // await FirebaseAnalytics.setCollectionEnabled({ enabled: true });
+
+        // Envoie l'événement d'ouverture !
+        await FirebaseAnalytics.logEvent({
+            name: "app_open",
+            params: {}
+        });
+
+        console.log("🚀 Firebase Analytics NATIF activé !");
+    } catch (e) {
+        console.warn("Erreur Analytics Natif:", e);
+    }
+}
+
+// Lancer au démarrage
+document.addEventListener('deviceready', initNativeAnalytics, false);
+if (window.Capacitor) initNativeAnalytics();
 </script>
 </body>
 </html>   
