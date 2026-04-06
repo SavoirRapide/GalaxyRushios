@@ -19,6 +19,6 @@
     "@capacitor/local-notifications": "^7.0.0",
     "@capacitor-community/firebase-analytics": "^1.0.0",
     "@openforge/capacitor-game-connect": "^1.0.0",
-    "@capacitor-community/app-tracking-transparency": "^1.0.0"
+    "capacitor-plugin-app-tracking-transparency": "^3.0.0"
   }
 }
