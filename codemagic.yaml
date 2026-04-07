@@ -1,6 +1,6 @@
 workflows:
   ios-capacitor-workflow:
-    name: Galaxy Rush iOS Build 1.0.6
+    name: Galaxy Rush iOS Build 1.0.7
     max_build_duration: 60
     instance_type: mac_mini_m2
     integrations:
@@ -11,8 +11,10 @@ workflows:
       xcode: latest
       node: 20
       ios_signing:
-        distribution_type: app_store
-        bundle_identifier: com.a2games.galaxyrush
+        provisioning_profiles:
+          - GalaxyRushAppStore
+        certificates:
+          - GalaxyRushDistribution
       vars:
         ADMOB_APP_ID: "ca-app-pub-2409581870901167~7654643904"
     scripts:
@@ -55,7 +57,7 @@ workflows:
           /usr/libexec/PlistBuddy -c "Add :GADApplicationIdentifier string $ADMOB_APP_ID" Info.plist
           /usr/libexec/PlistBuddy -c "Delete :NSUserTrackingUsageDescription" Info.plist || true
           /usr/libexec/PlistBuddy -c "Add :NSUserTrackingUsageDescription string 'This identifier will be used to deliver personalized ads and support the development of Galaxy Rush.'" Info.plist
-          /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString 1.0.6" Info.plist
+          /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString 1.0.7" Info.plist
           /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $BUILD_NUMBER" Info.plist
 
       - name: Enable Game Center Entitlements
@@ -91,7 +93,7 @@ workflows:
             --type IOS_APP_STORE \
             --create
           keychain add-certificates
-          xcode-project use-profiles
+          xcode-project use-profiles --profile-name "GalaxyRushAppStore"
 
       - name: Build IPA
         script: |
