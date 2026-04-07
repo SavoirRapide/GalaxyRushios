@@ -11,10 +11,8 @@ workflows:
       xcode: latest
       node: 20
       ios_signing:
-        provisioning_profiles:
-          - GalaxyRushAppStore
-        certificates:
-          - GalaxyRushDistribution
+        distribution_type: app_store
+        bundle_identifier: com.a2games.galaxyrush
       vars:
         ADMOB_APP_ID: "ca-app-pub-2409581870901167~7654643904"
     scripts:
@@ -88,12 +86,7 @@ workflows:
 
       - name: Set up code signing
         script: |
-          keychain initialize
-          app-store-connect fetch-signing-files com.a2games.galaxyrush \
-            --type IOS_APP_STORE \
-            --create
-          keychain add-certificates
-          xcode-project use-profiles --profile-name "GalaxyRushAppStore"
+          xcode-project use-profiles
 
       - name: Build IPA
         script: |
