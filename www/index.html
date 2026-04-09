@@ -8,8 +8,7 @@
 
   <title>GALAXY RUSH</title>
 
-  <!-- VIEWPORT (CRITIQUE MOBILE) -->
-<meta name="viewport" 
+  <meta name="viewport" 
       content="width=device-width, 
                height=device-height, 
                initial-scale=1.0, 
@@ -18,22 +17,19 @@
                user-scalable=no, 
                viewport-fit=cover">
 
-  <!-- ===== PWA ===== -->
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#05060a">
 
-  <!-- ===== iOS (OBLIGATOIRE) ===== -->
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Galaxy Rush">
 
-  <!-- ICÔNES -->
+  <script src="capacitor.js"></script>
+
   <link rel="icon" href="icon-192.png">
   <link rel="apple-touch-icon" href="icon-192.png">
 
-  <!-- STYLE -->
   <style>
-
 /* =========================================================================
    🌌 JETPACK RUNNER — STYLE SHEET FINAL (CLEAN V8 - SCALABLE UI FIX)
 ========================================================================= */
@@ -3066,15 +3062,17 @@ function handleGameOver() {
     Player.bestScore = bestScore;
     Player.save();
 
-    // 🏆 APPLE GAME CENTER : ENVOI DU SCORE
+    // 🏆 APPLE GAME CENTER : ENVOI DU SCORE (CORRIGÉ AVEC LE NOUVEAU PLUGIN)
     if (newRecordThisRun && bestScore > 0) {
-        const GameConnect = window.Capacitor && window.Capacitor.Plugins.GameConnect;
-        if (GameConnect) {
+        const AppleGameCenter = window.Capacitor && window.Capacitor.Plugins.AppleGameCenter;
+        if (AppleGameCenter) {
             console.log("🍏 Envoi du nouveau record au Game Center :", bestScore);
-            GameConnect.submitScore({
+            AppleGameCenter.submitScore({
                 leaderboardID: "galaxyrush.bestscore",
                 totalScoreAmount: bestScore
             }).catch(e => console.warn("Erreur Game Center :", e));
+        } else {
+            console.warn("⚠️ AppleGameCenter non trouvé pour l'envoi du score.");
         }
     }
 
@@ -7956,38 +7954,7 @@ async function scheduleFreeSpinNotification() {
         console.warn("Erreur Notification:", e);
     }
 }
-  const GameConnect = window.Capacitor && window.Capacitor.Plugins.GameConnect;
 
-async function initGameCenter() {
-    if (!GameConnect) return;
-    try {
-        await GameConnect.signIn();
-        console.log("🍏 Connecté à Apple Game Center !");
-    } catch (e) {
-        console.warn("Connexion Game Center ignorée ou échouée :", e);
-    }
-}
-
-// Lancement au démarrage
-document.addEventListener('deviceready', initGameCenter, false);
-if (window.Capacitor) initGameCenter();
-  async function showLeaderboard() {
-    const GameConnect = window.Capacitor && window.Capacitor.Plugins.GameConnect;
-    if (!GameConnect) {
-        console.warn("GameConnect non disponible (sur navigateur Web ?)");
-        return;
-    }
-    
-    try {
-        console.log("🍏 Ouverture du Leaderboard Game Center...");
-        // Assure-toi que l'ID correspond exactement à celui d'App Store Connect
-        await GameConnect.showLeaderboard({
-            leaderboardID: "galaxyrush.bestscore" 
-        });
-    } catch (e) {
-        console.error("Erreur lors de l'ouverture du Leaderboard :", e);
-    }
-}
 /* =========================================================
    🚀 DOM READY FINAL (ANTI-GHOST CLICK + STARTRUN SAFE)
 ========================================================= */
@@ -8283,16 +8250,13 @@ let canRequestAds = false;
 let isPersonalized = false;
 let rewardGranted = false; 
 
-// 💰 LE GESTIONNAIRE DE RÉCOMPENSE
 const handleReward = (reward) => {
     console.log("📬 AdMob : Signal de récompense reçu !");
     rewardGranted = true; 
 };
 
-// --- 1. INITIALISATION & CONSENTEMENT ---
 async function initAds() {
     if (!AdMob) return;
-
     try {
         console.log("AdMob: Vérification du consentement RGPD...");
         let consentInfo = await AdMob.requestConsentInfo();
@@ -8306,11 +8270,11 @@ async function initAds() {
         isPersonalized = (consentStatus === "OBTAINED" || consentStatus === "NOT_REQUIRED");
 
         if (!canRequestAds) {
-            console.warn("AdMob: Impossible de requêter des pubs (RGPD refusé ou ignoré).");
+            console.warn("AdMob: Impossible de requêter des pubs (RGPD refusé).");
             return; 
         }
 
-        // ⚠️ Modification ici : On met 'false' car l'ATT est géré manuellement avant !
+        // ATT géré manuellement avant, donc false ici
         await AdMob.initialize({ requestTrackingAuthorization: false });
         console.log("AdMob: SDK Initialisé !");
 
@@ -8319,7 +8283,6 @@ async function initAds() {
 
         AdMob.addListener('onRewardedVideoAdReward', handleReward);
 
-        // 📺 FERMETURE REWARD (AVEC DÉLAI DE 1200ms POUR iOS)
         AdMob.addListener('onRewardedVideoAdDismissed', () => {
             console.log("📺 AdMob : Fenêtre de pub fermée.");
             setTimeout(() => {
@@ -8330,66 +8293,40 @@ async function initAds() {
                     console.log("❌ Aucune récompense validée.");
                     if (window.pendingRewardFail) window.pendingRewardFail();
                 }
-
                 rewardGranted = false;
                 window.pendingRewardSuccess = null;
                 window.pendingRewardFail = null;
-
                 if (typeof hardRefreshCanvas === 'function') hardRefreshCanvas();
-                if (canRequestAds) {
-                    AdMob.prepareRewardVideoAd({ adId: AD_IDS.reward, isTesting: AD_IDS.isTesting, npa: !isPersonalized });
-                }
+                if (canRequestAds) AdMob.prepareRewardVideoAd({ adId: AD_IDS.reward, isTesting: AD_IDS.isTesting, npa: !isPersonalized });
             }, 1200); 
         });
 
-        // 📺 FERMETURE INTERSTITIEL
         AdMob.addListener('onInterstitialAdDismissed', () => {
             console.log("📺 AdMob : Interstitiel fermé.");
             if (typeof hardRefreshCanvas === 'function') hardRefreshCanvas();
-            if (canRequestAds) {
-                AdMob.prepareInterstitial({ adId: AD_IDS.interstitial, isTesting: AD_IDS.isTesting, npa: !isPersonalized });
-            }
+            if (canRequestAds) AdMob.prepareInterstitial({ adId: AD_IDS.interstitial, isTesting: AD_IDS.isTesting, npa: !isPersonalized });
         });
-
-    } catch (e) { 
-        console.warn("AdMob Init Fail:", e); 
-    }
+    } catch (e) { console.warn("AdMob Init Fail:", e); }
 }
 
-// --- 2. RÉVOCATION RGPD (LE BOUTON OPTIONS) ---
 async function revokeConsent() {
     if (!AdMob) return;
     try {
-        console.log("AdMob: Réinitialisation du consentement...");
         if (typeof setUIState === "function") setUIState("menu"); 
         await AdMob.resetConsentInfo();
-        await initAds(); // Relance le popup
-    } catch (e) {
-        console.warn("Erreur revokeConsent:", e);
-    }
+        await initAds();
+    } catch (e) { console.warn("Erreur revokeConsent:", e); }
 }
 
-// --- 3. INTERSTITIAL (GAME OVER) ---
 async function showGameOverAd() {
     if (!AdMob || !canRequestAds) return;
-    try {
-        await AdMob.showInterstitial();
-    } catch (e) {
-        if (canRequestAds) AdMob.prepareInterstitial({ adId: AD_IDS.interstitial, isTesting: AD_IDS.isTesting, npa: !isPersonalized });
-    }
+    try { await AdMob.showInterstitial(); } 
+    catch (e) { if (canRequestAds) AdMob.prepareInterstitial({ adId: AD_IDS.interstitial, isTesting: AD_IDS.isTesting, npa: !isPersonalized }); }
 }
 
-// --- 4. REWARD (REVIVE & SHOP) ---
 async function showRewardedAd(onSuccess, onFail) {
-    if (!AdMob) { 
-        if(onSuccess) onSuccess(); 
-        return; 
-    }
-    if (!canRequestAds) {
-        if(onFail) onFail();
-        return;
-    }
-
+    if (!AdMob) { if(onSuccess) onSuccess(); return; }
+    if (!canRequestAds) { if(onFail) onFail(); return; }
     try {
         rewardGranted = false; 
         window.pendingRewardSuccess = onSuccess;
@@ -8402,63 +8339,81 @@ async function showRewardedAd(onSuccess, onFail) {
         if (canRequestAds) AdMob.prepareRewardVideoAd({ adId: AD_IDS.reward, isTesting: AD_IDS.isTesting, npa: !isPersonalized });
     }
 }
-
 window.isAdSystemReady = function() { return canRequestAds; };
 
 /* =========================================================
    🍏 APPLE TRACKING TRANSPARENCY (ATT)
 ========================================================= */
 async function requestATT() {
-    if (!window.Capacitor) return;
+    if (!window.Capacitor || !window.Capacitor.Plugins.AppTrackingTransparency) return;
     try {
         const ATT = window.Capacitor.Plugins.AppTrackingTransparency;
-        if (!ATT) return;
-        
         const { status } = await ATT.getStatus();
         console.log("🍏 Statut ATT iOS :", status);
-        
         if (status === 'notDetermined' || status === 'unrequested') {
             const result = await ATT.requestPermission();
             console.log("🍏 Résultat ATT :", result.status);
         }
-    } catch(e) {
-        console.warn("⚠️ Erreur ATT (Ignorée sur Android/Web) :", e);
-    }
+    } catch(e) { console.warn("⚠️ Erreur ATT :", e); }
 }
 
 /* =========================================================
    📊 FIREBASE ANALYTICS
 ========================================================= */
-const FirebaseAnalytics = window.Capacitor && window.Capacitor.Plugins.FirebaseAnalytics;
-
 async function initNativeAnalytics() {
+    const FirebaseAnalytics = window.Capacitor && window.Capacitor.Plugins.FirebaseAnalytics;
     if (!FirebaseAnalytics) return;
-
     try {
-        await FirebaseAnalytics.logEvent({
-            name: "app_open",
-            params: {}
-        });
+        await FirebaseAnalytics.logEvent({ name: "app_open", params: {} });
         console.log("🚀 Firebase Analytics NATIF activé !");
-    } catch (e) {
-        console.warn("Erreur Analytics Natif:", e);
+    } catch (e) { console.warn("Erreur Analytics Natif:", e); }
+}
+
+/* =========================================================
+   🍏 APPLE GAME CENTER (NOUVEAU PLUGIN)
+========================================================= */
+const AppleGameCenter = window.Capacitor && window.Capacitor.Plugins.AppleGameCenter;
+
+async function initGameCenter() {
+    if (!AppleGameCenter) return;
+    try {
+        await AppleGameCenter.signIn();
+        console.log("🍏 Connecté à Apple Game Center !");
+    } catch (e) { console.warn("⚠️ Connexion Game Center échouée :", e); }
+}
+
+async function showLeaderboard() {
+    if (!AppleGameCenter) {
+        console.warn("AppleGameCenter non disponible.");
+        return;
     }
+    try {
+        console.log("🍏 Ouverture du Leaderboard Game Center...");
+        await AppleGameCenter.showLeaderboard({ leaderboardID: "galaxyrush.bestscore" });
+    } catch (e) { console.error("Erreur lors de l'ouverture du Leaderboard :", e); }
 }
 
 /* =========================================================
    🚀 MASTER INIT (SÉQUENCE DE DÉMARRAGE SÉCURISÉE)
 ========================================================= */
 async function initAll() {
-    console.log("⚙️ Démarrage de la séquence système...");
+    console.log("⚙️ Démarrage de la séquence système natif...");
     
-    await requestATT();       // 🔥 1. ATT EN PREMIER (Bloquant)
-    await initAds();          // 📺 2. AdMob ensuite (RGPD & pubs)
-    initNativeAnalytics();    // 📊 3. Analytics à la fin
+    if (!window.Capacitor) {
+        console.log("🌐 Mode Navigateur Web détecté (Pas de plugins natifs).");
+        return;
+    }
+
+    await requestATT();       // 1. ATT EN PREMIER (Bloquant)
+    await initAds();          // 2. AdMob ensuite
+    initNativeAnalytics();    // 3. Analytics
+    initGameCenter();         // 4. Game Center
 }
 
-// 🎯 Un seul et unique point de lancement !
-document.addEventListener('deviceready', initAll, false);
-if (window.Capacitor) initAll();
+// 🎯 DÉCLENCHEUR UNIQUE
+document.addEventListener("DOMContentLoaded", () => {
+    initAll();
+});
 </script>
 </body>
 </html>   
