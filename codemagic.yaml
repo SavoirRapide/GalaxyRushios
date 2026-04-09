@@ -1,6 +1,6 @@
 workflows:
   ios-capacitor-workflow:
-    name: Galaxy Rush iOS Build 1.0.7
+    name: Galaxy Rush iOS Build 1.0.8
     max_build_duration: 60
     instance_type: mac_mini_m2
     integrations:
@@ -20,7 +20,7 @@ workflows:
         script: |
           npm install @capacitor/core@^7.0.0 @capacitor/ios@^7.0.0 @capacitor/cli@^7.0.0 --legacy-peer-deps
           npm install @capacitor-community/admob@^8.0.0 --legacy-peer-deps
-          npm install @openforge/capacitor-game-connect --legacy-peer-deps
+          npm install @openforge/capacitor-apple-game-center --legacy-peer-deps
           npm install @capacitor/local-notifications@^7.0.0 --legacy-peer-deps
           npm install @capacitor-community/firebase-analytics --legacy-peer-deps
           npm install capacitor-plugin-app-tracking-transparency --legacy-peer-deps
@@ -55,7 +55,7 @@ workflows:
           /usr/libexec/PlistBuddy -c "Add :GADApplicationIdentifier string $ADMOB_APP_ID" Info.plist
           /usr/libexec/PlistBuddy -c "Delete :NSUserTrackingUsageDescription" Info.plist || true
           /usr/libexec/PlistBuddy -c "Add :NSUserTrackingUsageDescription string 'This identifier will be used to deliver personalized ads and support the development of Galaxy Rush.'" Info.plist
-          /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString 1.0.7" Info.plist
+          /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString 1.0.8" Info.plist
           /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $BUILD_NUMBER" Info.plist
 
       - name: Enable Game Center Entitlements
