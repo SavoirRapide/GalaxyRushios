@@ -3068,8 +3068,8 @@ function handleGameOver() {
         if (AppleGameCenter) {
             console.log("🍏 Envoi du nouveau record au Game Center :", bestScore);
             AppleGameCenter.submitScore({
-                leaderboardID: "galaxyrush.bestscore",
-                totalScoreAmount: bestScore
+                leaderboardId: "galaxyrush.bestscore",
+                score: bestScore
             }).catch(e => console.warn("Erreur Game Center :", e));
         } else {
             console.warn("⚠️ AppleGameCenter non trouvé pour l'envoi du score.");
@@ -8236,7 +8236,7 @@ function hardRefreshCanvas() {
     }
 }
 /* =========================================================
-   📺 ADMOB MANAGER V8.0 (RGPD + SÉCURITÉ RÉCOMPENSE)
+   📺 ADMOB MANAGER V8.1 (ATT SEULEMENT - INITIALISATION FORCÉE)
 ========================================================= */
 const AdMob = window.Capacitor && window.Capacitor.Plugins.AdMob;
 
@@ -8247,7 +8247,6 @@ const AD_IDS = {
 };
 
 let canRequestAds = false;
-let isPersonalized = false;
 let rewardGranted = false; 
 
 const handleReward = (reward) => {
@@ -8258,28 +8257,16 @@ const handleReward = (reward) => {
 async function initAds() {
     if (!AdMob) return;
     try {
-        console.log("AdMob: Vérification du consentement RGPD...");
-        let consentInfo = await AdMob.requestConsentInfo();
-        
-        if (!consentInfo.canRequestAds && consentInfo.isConsentFormAvailable) {
-            consentInfo = await AdMob.showConsentForm();
-        }
+        console.log("AdMob: Démarrage de l'initialisation...");
 
-        canRequestAds = !!consentInfo.canRequestAds;
-        const consentStatus = consentInfo.status || "UNKNOWN";
-        isPersonalized = (consentStatus === "OBTAINED" || consentStatus === "NOT_REQUIRED");
-
-        if (!canRequestAds) {
-            console.warn("AdMob: Impossible de requêter des pubs (RGPD refusé).");
-            return; 
-        }
-
-        // ATT géré manuellement avant, donc false ici
+        // Initialisation forcée sans RGPD (ATT géré avant dans initAll)
         await AdMob.initialize({ requestTrackingAuthorization: false });
-        console.log("AdMob: SDK Initialisé !");
+        console.log("AdMob: SDK Initialisé avec succès !");
 
-        await AdMob.prepareInterstitial({ adId: AD_IDS.interstitial, isTesting: AD_IDS.isTesting, npa: !isPersonalized });
-        await AdMob.prepareRewardVideoAd({ adId: AD_IDS.reward, isTesting: AD_IDS.isTesting, npa: !isPersonalized });
+        canRequestAds = true;
+
+        await AdMob.prepareInterstitial({ adId: AD_IDS.interstitial, isTesting: AD_IDS.isTesting });
+        await AdMob.prepareRewardVideoAd({ adId: AD_IDS.reward, isTesting: AD_IDS.isTesting });
 
         AdMob.addListener('onRewardedVideoAdReward', handleReward);
 
@@ -8297,31 +8284,23 @@ async function initAds() {
                 window.pendingRewardSuccess = null;
                 window.pendingRewardFail = null;
                 if (typeof hardRefreshCanvas === 'function') hardRefreshCanvas();
-                if (canRequestAds) AdMob.prepareRewardVideoAd({ adId: AD_IDS.reward, isTesting: AD_IDS.isTesting, npa: !isPersonalized });
+                if (canRequestAds) AdMob.prepareRewardVideoAd({ adId: AD_IDS.reward, isTesting: AD_IDS.isTesting });
             }, 1200); 
         });
 
         AdMob.addListener('onInterstitialAdDismissed', () => {
             console.log("📺 AdMob : Interstitiel fermé.");
             if (typeof hardRefreshCanvas === 'function') hardRefreshCanvas();
-            if (canRequestAds) AdMob.prepareInterstitial({ adId: AD_IDS.interstitial, isTesting: AD_IDS.isTesting, npa: !isPersonalized });
+            if (canRequestAds) AdMob.prepareInterstitial({ adId: AD_IDS.interstitial, isTesting: AD_IDS.isTesting });
         });
-    } catch (e) { console.warn("AdMob Init Fail:", e); }
-}
 
-async function revokeConsent() {
-    if (!AdMob) return;
-    try {
-        if (typeof setUIState === "function") setUIState("menu"); 
-        await AdMob.resetConsentInfo();
-        await initAds();
-    } catch (e) { console.warn("Erreur revokeConsent:", e); }
+    } catch (e) { console.warn("AdMob Init Fail:", e); }
 }
 
 async function showGameOverAd() {
     if (!AdMob || !canRequestAds) return;
     try { await AdMob.showInterstitial(); } 
-    catch (e) { if (canRequestAds) AdMob.prepareInterstitial({ adId: AD_IDS.interstitial, isTesting: AD_IDS.isTesting, npa: !isPersonalized }); }
+    catch (e) { if (canRequestAds) AdMob.prepareInterstitial({ adId: AD_IDS.interstitial, isTesting: AD_IDS.isTesting }); }
 }
 
 async function showRewardedAd(onSuccess, onFail) {
@@ -8336,7 +8315,7 @@ async function showRewardedAd(onSuccess, onFail) {
         if(onFail) onFail();
         window.pendingRewardSuccess = null;
         window.pendingRewardFail = null;
-        if (canRequestAds) AdMob.prepareRewardVideoAd({ adId: AD_IDS.reward, isTesting: AD_IDS.isTesting, npa: !isPersonalized });
+        if (canRequestAds) AdMob.prepareRewardVideoAd({ adId: AD_IDS.reward, isTesting: AD_IDS.isTesting });
     }
 }
 window.isAdSystemReady = function() { return canRequestAds; };
@@ -8416,4 +8395,4 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 </script>
 </body>
-</html>   
+</html>
