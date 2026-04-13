@@ -23,26 +23,14 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
             print("Audio session error: \(error)")
         }
 
-        NotificationCenter.default.addObserver(
-            self,
-            selector: #selector(onWebViewReady(_:)),
-            name: NSNotification.Name.capacitorDidLoad,
-            object: nil
-        )
-
         return true
     }
 
     // ══════════════════════════════════════════════
-    // MARK: - Injection du bridge JS dans la WebView
+    // MARK: - Bridge injection (appelé par AppViewController)
     // ══════════════════════════════════════════════
 
-    @objc func onWebViewReady(_ notification: Notification) {
-        guard let bridge = notification.object as? CAPBridgeProtocol,
-              let webView = bridge.webView else {
-            print("⚠️ WebView introuvable")
-            return
-        }
+    func injectBridge(webView: WKWebView) {
         self.activeWebView = webView
 
         let bridgeScript = """
@@ -136,7 +124,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     }
 
     // ══════════════════════════════════════════════
-    // MARK: - JS Communication (identique au notifyJS Android)
+    // MARK: - JS Communication
     // ══════════════════════════════════════════════
 
     func notifyJS(event: String, data: String) {
@@ -148,7 +136,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     }
 
     // ══════════════════════════════════════════════
-    // MARK: - Lifecycle Capacitor standard
+    // MARK: - Lifecycle
     // ══════════════════════════════════════════════
 
     func applicationWillResignActive(_ application: UIApplication) {}
@@ -167,7 +155,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 }
 
 // ══════════════════════════════════════════════
-// MARK: - WKScriptMessageHandler (reçoit les appels JS)
+// MARK: - WKScriptMessageHandler
 // ══════════════════════════════════════════════
 
 class AppodealMessageHandler: NSObject, WKScriptMessageHandler {
