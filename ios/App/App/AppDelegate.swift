@@ -24,12 +24,43 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
             print("Audio session error: \(error)")
         }
 
-        // Polling pour trouver la WebView quand Capacitor est prêt
+        // Initialiser Appodeal directement au lancement (comme recommandé par la doc)
+        initAppodealAtLaunch()
+
+        // Polling pour trouver la WebView
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
             self.findAndInjectBridge()
         }
 
         return true
+    }
+
+    // ══════════════════════════════════════════════
+    // MARK: - Appodeal Init au lancement (ATT → SDK)
+    // ══════════════════════════════════════════════
+
+    private func initAppodealAtLaunch() {
+        if #available(iOS 14.5, *) {
+            ATTrackingManager.requestTrackingAuthorization { status in
+                print("📲 ATT status: \(status.rawValue)")
+                DispatchQueue.main.async {
+                    self.doAppodealInit()
+                }
+            }
+        } else {
+            doAppodealInit()
+        }
+    }
+
+    private func doAppodealInit() {
+        if appodealInitialized { return }
+        Appodeal.setLogLevel(.verbose)
+        Appodeal.setInitializationDelegate(self)
+        Appodeal.initialize(
+            withApiKey: appodealAppKey,
+            types: [.interstitial, .rewardedVideo]
+        )
+        print("🚀 Appodeal: init lancée depuis didFinishLaunchingWithOptions")
     }
 
     // ══════════════════════════════════════════════
@@ -40,7 +71,6 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         if bridgeInjected { return }
 
         guard let rootVC = window?.rootViewController else {
-            print("⚠️ rootViewController pas encore prêt, retry dans 0.5s...")
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                 self.findAndInjectBridge()
             }
@@ -50,7 +80,6 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         if let webView = findWebView(in: rootVC.view) {
             injectBridge(webView: webView)
         } else {
-            print("⚠️ WebView pas encore dans la hiérarchie, retry dans 0.5s...")
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                 self.findAndInjectBridge()
             }
@@ -74,7 +103,6 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         bridgeInjected = true
         self.activeWebView = webView
 
-        // 1. Script injecté à chaque chargement de page (atDocumentStart)
         let bridgeScript = """
         window.AppodealBridge = {
             initAds: function() {
@@ -100,13 +128,12 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         )
         webView.configuration.userContentController.addUserScript(userScript)
 
-        // 2. Message handler pour recevoir les appels JS
         webView.configuration.userContentController.add(
             AppodealMessageHandler(delegate: self),
             name: "appodealBridge"
         )
 
-        // 3. Injecter aussi maintenant au cas où la page est déjà chargée
+        // Injecter aussi maintenant si la page est déjà chargée
         webView.evaluateJavaScript(bridgeScript) { _, error in
             if let error = error {
                 print("⚠️ Injection directe erreur: \(error)")
@@ -115,41 +142,25 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
             }
         }
 
+        // Si Appodeal est déjà init, notifier le JS maintenant
+        if appodealInitialized {
+            notifyJS(event: "onAdsInitialized", data: "true")
+        }
+
         print("🚀 AppodealBridge iOS configuré.")
     }
 
     // ══════════════════════════════════════════════
-    // MARK: - Appodeal Init
+    // MARK: - Appodeal Init (appelé par JS — fallback)
     // ══════════════════════════════════════════════
 
     func initAppodeal() {
         if appodealInitialized {
-            print("Appodeal: Déjà initialisé, skip.")
             notifyJS(event: "onAdsInitialized", data: "true")
             return
         }
-
-        print("Appodeal: Initialisation…")
-
-        if #available(iOS 14.5, *) {
-            ATTrackingManager.requestTrackingAuthorization { status in
-                print("📲 ATT status: \(status.rawValue)")
-                DispatchQueue.main.async {
-                    self.doAppodealInit()
-                }
-            }
-        } else {
-            doAppodealInit()
-        }
-    }
-
-    private func doAppodealInit() {
-        Appodeal.setLogLevel(.verbose)
-        Appodeal.setInitializationDelegate(self)
-        Appodeal.initialize(
-            withApiKey: appodealAppKey,
-            types: [.interstitial, .rewardedVideo]
-        )
+        // Si pas encore init (cas rare), on lance
+        doAppodealInit()
     }
 
     // ══════════════════════════════════════════════
