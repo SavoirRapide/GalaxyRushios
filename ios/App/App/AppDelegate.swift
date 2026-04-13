@@ -1,58 +1,255 @@
 import UIKit
+import WebKit
 import Capacitor
 import AVFoundation
+import Appodeal
+import AppTrackingTransparency
 
 @UIApplicationMain
 class AppDelegate: UIResponder, UIApplicationDelegate {
 
     var window: UIWindow?
+    private let appodealAppKey = "23c5dc7ba8ef7a9104b712ffec317572d15682dee76aa870"
+    private var appodealInitialized = false
+    private var rewardEarned = false
+    private weak var activeWebView: WKWebView?
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
-        // Override point for customization after application launch.
-        
+
         do {
             try AVAudioSession.sharedInstance().setCategory(.playback, mode: .default, options: [.mixWithOthers])
             try AVAudioSession.sharedInstance().setActive(true)
         } catch {
             print("Audio session error: \(error)")
         }
-        
+
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(onWebViewReady(_:)),
+            name: NSNotification.Name.capacitorDidLoad,
+            object: nil
+        )
+
         return true
     }
 
-    func applicationWillResignActive(_ application: UIApplication) {
-        // Sent when the application is about to move from active to inactive state. This can occur for certain types of temporary interruptions (such as an incoming phone call or SMS message) or when the user quits the application and it begins the transition to the background state.
-        // Use this method to pause ongoing tasks, disable timers, and invalidate graphics rendering callbacks. Games should use this method to pause the game.
+    // ══════════════════════════════════════════════
+    // MARK: - Injection du bridge JS dans la WebView
+    // ══════════════════════════════════════════════
+
+    @objc func onWebViewReady(_ notification: Notification) {
+        guard let bridge = notification.object as? CAPBridgeProtocol,
+              let webView = bridge.webView else {
+            print("⚠️ WebView introuvable")
+            return
+        }
+        self.activeWebView = webView
+
+        let bridgeScript = """
+        window.AppodealBridge = {
+            initAds: function() {
+                window.webkit.messageHandlers.appodealBridge.postMessage({ action: "initAds" });
+            },
+            showInterstitial: function() {
+                window.webkit.messageHandlers.appodealBridge.postMessage({ action: "showInterstitial" });
+            },
+            showRewarded: function() {
+                window.webkit.messageHandlers.appodealBridge.postMessage({ action: "showRewarded" });
+            },
+            isLoaded: function(type) {
+                return true;
+            }
+        };
+        console.log("🍎 AppodealBridge iOS injecté !");
+        """
+
+        let userScript = WKUserScript(
+            source: bridgeScript,
+            injectionTime: .atDocumentStart,
+            forMainFrameOnly: true
+        )
+        webView.configuration.userContentController.addUserScript(userScript)
+        webView.configuration.userContentController.add(
+            AppodealMessageHandler(delegate: self),
+            name: "appodealBridge"
+        )
+
+        print("🚀 AppodealBridge iOS injecté dans la WebView.")
     }
 
-    func applicationDidEnterBackground(_ application: UIApplication) {
-        // Use this method to release shared resources, save user data, invalidate timers, and store enough application state information to restore your application to its current state in case it is terminated later.
-        // If your application supports background execution, this method is called instead of applicationWillTerminate: when the user quits.
+    // ══════════════════════════════════════════════
+    // MARK: - Appodeal Init (ATT → puis init SDK)
+    // ══════════════════════════════════════════════
+
+    func initAppodeal() {
+        if appodealInitialized {
+            print("Appodeal: Déjà initialisé, skip.")
+            notifyJS(event: "onAdsInitialized", data: "true")
+            return
+        }
+
+        print("Appodeal: Initialisation…")
+
+        if #available(iOS 14.5, *) {
+            ATTrackingManager.requestTrackingAuthorization { status in
+                print("📲 ATT status: \(status.rawValue)")
+                DispatchQueue.main.async {
+                    self.doAppodealInit()
+                }
+            }
+        } else {
+            doAppodealInit()
+        }
     }
 
-    func applicationWillEnterForeground(_ application: UIApplication) {
-        // Called as part of the transition from the background to the active state; here you can undo many of the changes made on entering the background.
+    private func doAppodealInit() {
+        Appodeal.setLogLevel(.verbose)
+        Appodeal.setInitializationDelegate(self)
+        Appodeal.initialize(
+            withApiKey: appodealAppKey,
+            types: [.interstitial, .rewardedVideo]
+        )
     }
 
-    func applicationDidBecomeActive(_ application: UIApplication) {
-        // Restart any tasks that were paused (or not yet started) while the application was inactive. If the application was previously in the background, optionally refresh the user interface.
+    // ══════════════════════════════════════════════
+    // MARK: - Show Ads
+    // ══════════════════════════════════════════════
+
+    func showInterstitial() {
+        guard let rootVC = window?.rootViewController else { return }
+        if Appodeal.isReadyForShow(with: .interstitial) {
+            Appodeal.showAd(.interstitial, rootViewController: rootVC)
+        } else {
+            print("⚠️ Appodeal: Interstitiel pas chargé.")
+        }
     }
 
-    func applicationWillTerminate(_ application: UIApplication) {
-        // Called when the application is about to terminate. Save data if appropriate. See also applicationDidEnterBackground:.
+    func showRewarded() {
+        guard let rootVC = window?.rootViewController else { return }
+        rewardEarned = false
+        if Appodeal.isReadyForShow(with: .rewardedVideo) {
+            Appodeal.showAd(.rewardedVideo, rootViewController: rootVC)
+        } else {
+            print("⚠️ Appodeal: Rewarded pas chargée.")
+            notifyJS(event: "onRewardedFailed", data: "not_loaded")
+        }
     }
+
+    // ══════════════════════════════════════════════
+    // MARK: - JS Communication (identique au notifyJS Android)
+    // ══════════════════════════════════════════════
+
+    func notifyJS(event: String, data: String) {
+        guard let wv = activeWebView else { return }
+        let js = "window.dispatchEvent(new CustomEvent('\(event)', {detail:'\(data)'}));"
+        DispatchQueue.main.async {
+            wv.evaluateJavaScript(js, completionHandler: nil)
+        }
+    }
+
+    // ══════════════════════════════════════════════
+    // MARK: - Lifecycle Capacitor standard
+    // ══════════════════════════════════════════════
+
+    func applicationWillResignActive(_ application: UIApplication) {}
+    func applicationDidEnterBackground(_ application: UIApplication) {}
+    func applicationWillEnterForeground(_ application: UIApplication) {}
+    func applicationDidBecomeActive(_ application: UIApplication) {}
+    func applicationWillTerminate(_ application: UIApplication) {}
 
     func application(_ app: UIApplication, open url: URL, options: [UIApplication.OpenURLOptionsKey: Any] = [:]) -> Bool {
-        // Called when the app was launched with a url. Feel free to add additional processing here,
-        // but if you want the App API to support tracking app url opens, make sure to keep this call
         return ApplicationDelegateProxy.shared.application(app, open: url, options: options)
     }
 
     func application(_ application: UIApplication, continue userActivity: NSUserActivity, restorationHandler: @escaping ([UIUserActivityRestoring]?) -> Void) -> Bool {
-        // Called when the app was launched with an activity, including Universal Links.
-        // Feel free to add additional processing here, but if you want the App API to support
-        // tracking app url opens, make sure to keep this call
         return ApplicationDelegateProxy.shared.application(application, continue: userActivity, restorationHandler: restorationHandler)
     }
+}
 
+// ══════════════════════════════════════════════
+// MARK: - WKScriptMessageHandler (reçoit les appels JS)
+// ══════════════════════════════════════════════
+
+class AppodealMessageHandler: NSObject, WKScriptMessageHandler {
+    weak var delegate: AppDelegate?
+
+    init(delegate: AppDelegate) {
+        self.delegate = delegate
+    }
+
+    func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
+        guard let body = message.body as? [String: Any],
+              let action = body["action"] as? String else { return }
+
+        switch action {
+        case "initAds":
+            delegate?.initAppodeal()
+        case "showInterstitial":
+            delegate?.showInterstitial()
+        case "showRewarded":
+            delegate?.showRewarded()
+        default:
+            print("⚠️ AppodealBridge: action inconnue '\(action)'")
+        }
+    }
+}
+
+// ══════════════════════════════════════════════
+// MARK: - Appodeal Initialization Delegate
+// ══════════════════════════════════════════════
+
+extension AppDelegate: AppodealInitializationDelegate {
+    func appodealSDKDidInitialize() {
+        print("✅ Appodeal initialisé (iOS) !")
+        appodealInitialized = true
+        Appodeal.setInterstitialDelegate(self)
+        Appodeal.setRewardedVideoDelegate(self)
+        notifyJS(event: "onAdsInitialized", data: "true")
+    }
+}
+
+// ══════════════════════════════════════════════
+// MARK: - Interstitial Delegate
+// ══════════════════════════════════════════════
+
+extension AppDelegate: AppodealInterstitialDelegate {
+    func interstitialDidLoadAdIsPrecache(_ precache: Bool) {}
+    func interstitialDidFailToLoadAd() {}
+    func interstitialWillPresent() {}
+    func interstitialDidFailToPresent() {}
+    func interstitialDidClick() {}
+    func interstitialDidExpired() {}
+    func interstitialDidDismiss() {
+        notifyJS(event: "onInterstitialClosed", data: "true")
+    }
+}
+
+// ══════════════════════════════════════════════
+// MARK: - Rewarded Video Delegate
+// ══════════════════════════════════════════════
+
+extension AppDelegate: AppodealRewardedVideoDelegate {
+    func rewardedVideoDidLoadAdIsPrecache(_ precache: Bool) {}
+    func rewardedVideoDidFailToLoadAd() {}
+    func rewardedVideoDidPresent() {}
+    func rewardedVideoDidClick() {}
+    func rewardedVideoDidExpired() {}
+
+    func rewardedVideoDidFailToPresentWithError(_ error: Error) {
+        notifyJS(event: "onRewardedFailed", data: "show_failed")
+    }
+
+    func rewardedVideoDidFinish(_ rewardAmount: Float, name rewardName: String?) {
+        rewardEarned = true
+    }
+
+    func rewardedVideoWillDismissAndWasFullyWatched(_ wasFullyWatched: Bool) {
+        if rewardEarned || wasFullyWatched {
+            notifyJS(event: "onRewardEarned", data: "true")
+        } else {
+            notifyJS(event: "onRewardedFailed", data: "not_finished")
+        }
+        rewardEarned = false
+        notifyJS(event: "onAdClosed", data: "true")
+    }
 }
