@@ -13,6 +13,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     private var appodealInitialized = false
     private var rewardEarned = false
     private weak var activeWebView: WKWebView?
+    private var bridgeInjected = false
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
 
@@ -23,16 +24,57 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
             print("Audio session error: \(error)")
         }
 
+        // Polling pour trouver la WebView quand Capacitor est prêt
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+            self.findAndInjectBridge()
+        }
+
         return true
     }
 
     // ══════════════════════════════════════════════
-    // MARK: - Bridge injection (appelé par AppViewController)
+    // MARK: - Trouver la WebView et injecter le bridge
+    // ══════════════════════════════════════════════
+
+    private func findAndInjectBridge() {
+        if bridgeInjected { return }
+
+        guard let rootVC = window?.rootViewController else {
+            print("⚠️ rootViewController pas encore prêt, retry dans 0.5s...")
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                self.findAndInjectBridge()
+            }
+            return
+        }
+
+        if let webView = findWebView(in: rootVC.view) {
+            injectBridge(webView: webView)
+        } else {
+            print("⚠️ WebView pas encore dans la hiérarchie, retry dans 0.5s...")
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                self.findAndInjectBridge()
+            }
+        }
+    }
+
+    private func findWebView(in view: UIView) -> WKWebView? {
+        if let wv = view as? WKWebView { return wv }
+        for sub in view.subviews {
+            if let found = findWebView(in: sub) { return found }
+        }
+        return nil
+    }
+
+    // ══════════════════════════════════════════════
+    // MARK: - Bridge injection
     // ══════════════════════════════════════════════
 
     func injectBridge(webView: WKWebView) {
+        if bridgeInjected { return }
+        bridgeInjected = true
         self.activeWebView = webView
 
+        // 1. Script injecté à chaque chargement de page (atDocumentStart)
         let bridgeScript = """
         window.AppodealBridge = {
             initAds: function() {
@@ -57,16 +99,27 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
             forMainFrameOnly: true
         )
         webView.configuration.userContentController.addUserScript(userScript)
+
+        // 2. Message handler pour recevoir les appels JS
         webView.configuration.userContentController.add(
             AppodealMessageHandler(delegate: self),
             name: "appodealBridge"
         )
 
-        print("🚀 AppodealBridge iOS injecté dans la WebView.")
+        // 3. Injecter aussi maintenant au cas où la page est déjà chargée
+        webView.evaluateJavaScript(bridgeScript) { _, error in
+            if let error = error {
+                print("⚠️ Injection directe erreur: \(error)")
+            } else {
+                print("✅ Bridge injecté directement dans la page courante")
+            }
+        }
+
+        print("🚀 AppodealBridge iOS configuré.")
     }
 
     // ══════════════════════════════════════════════
-    // MARK: - Appodeal Init (ATT → puis init SDK)
+    // MARK: - Appodeal Init
     // ══════════════════════════════════════════════
 
     func initAppodeal() {
