@@ -8,7 +8,8 @@
 
   <title>GALAXY RUSH</title>
 
-  <meta name="viewport" 
+  <!-- VIEWPORT (CRITIQUE MOBILE) -->
+<meta name="viewport" 
       content="width=device-width, 
                height=device-height, 
                initial-scale=1.0, 
@@ -17,19 +18,22 @@
                user-scalable=no, 
                viewport-fit=cover">
 
+  <!-- ===== PWA ===== -->
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#05060a">
 
+  <!-- ===== iOS (OBLIGATOIRE) ===== -->
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="Galaxy Rush">
+  <meta name="apple-mobile-web-app-title" content="Jetpack Runner">
 
-  <script src="capacitor.js"></script>
-
+  <!-- ICÔNES -->
   <link rel="icon" href="icon-192.png">
   <link rel="apple-touch-icon" href="icon-192.png">
 
+  <!-- STYLE -->
   <style>
+
 /* =========================================================================
    🌌 JETPACK RUNNER — STYLE SHEET FINAL (CLEAN V8 - SCALABLE UI FIX)
 ========================================================================= */
@@ -977,17 +981,12 @@ body.comboActive #combo {
 /* =========================================================================
    📱 MEDIA QUERIES & FIXES
 ========================================================================= */
-
-/* Cache le menu quand on joue (GPU VIDEO SAFE) */
+/* Cache le menu quand on joue (CORRIGÉ) */
 body.playing #menuOverlay,
 body.playing #menuVideo,
 body.playing #galaxyBG,
 body.playing .menuParticles {
-    /* 🔥 JAMAIS de "display: none" sur une <video> matérielle sur mobile ! */
-    visibility: hidden !important;
-    opacity: 0 !important;
-    pointer-events: none !important;
-    z-index: -100 !important;
+    display: none !important; visibility: hidden !important; opacity: 0 !important; pointer-events: none !important;
 }
 
 /* Mobile Portrait Shop Fix */
@@ -1008,58 +1007,58 @@ body.playing .menuParticles {
     .skinName { font-size: 24px; }
     .skinButton { padding: 10px 0; min-width: 180px; font-size: 14px; }
 }
-
 /* =========================================================================
    📱 TABLET FIX (iPad & Android Tablets)
    Cible les écrans plus larges que les mobiles mais moins que les PC,
    et surtout avec un ratio plus "carré" (4:3 ou 16:10)
 ========================================================================= */
 @media screen and (min-width: 601px) and (max-width: 1180px) {
-    /* 1. Réduire la taille du perso dans le shop */
+
+    /* 1. Réduire la taille du perso dans le shop pour qu'il ne mange pas tout l'écran */
     #shopHeroCanvas {
-        height: 45vh !important;
+        height: 45vh !important; /* On passe de 60vh à 45vh */
         max-width: 60vw;
     }
 
     /* 2. Remonter la zone de contenu */
     .shopContentZone {
-        justify-content: flex-end;
-        padding-bottom: 140px;
+        justify-content: flex-end; /* Pousse vers le bas pour éviter le header */
+        padding-bottom: 140px;     /* Laisse de la place pour les boutons */
     }
 
-    /* 3. Textes */
+    /* 3. Ajuster la taille des textes qui sont souvent trop gros sur tablette */
     .skinName {
-        font-size: 32px;
+        font-size: 32px; /* Au lieu de 42px */
     }
-
+    
     .skinPrice {
         font-size: 16px;
         margin-bottom: 10px;
     }
 
-    /* 4. Bouton d'action */
+    /* 4. Le bouton d'action */
     .skinButton {
         min-width: 220px;
         padding: 14px 0;
         font-size: 16px;
     }
 
-    /* 5. Score en jeu */
+    /* 5. Score en jeu un peu plus petit */
     #uiScore {
         font-size: 50px;
         top: 3%;
     }
-
-    /* 6. Boutons menu principal */
+    
+    /* 6. Boutons du menu principal */
     .menuBtn {
         min-width: 200px;
         padding: 12px 0;
         font-size: 13px;
     }
-
+    
     /* 7. Carte Game Over */
     .gameOverCard {
-        transform: scale(0.9);
+        transform: scale(0.9); /* Réduit globalement la fenêtre de fin */
     }
 }
 /* === ROULETTE CYBERPUNK REACTOR (EXTRA COMPACTE) === */
@@ -1220,7 +1219,221 @@ body.playing .menuParticles {
     animation: multiPulse 1.5s infinite; /* Ta propre animation ! */
 }
 #rankChangedBtn:active { opacity: 0.7; }
+
+/* =========================================================================
+   🏆 FIREBASE LEADERBOARD OVERLAY
+========================================================================= */
+#lbOverlay {
+  position: fixed; inset: 0; z-index: 9000;
+  width: 100vw; height: 100vh;
+  background: rgba(2, 4, 10, 0.97);
+  backdrop-filter: blur(12px);
+  display: none; align-items: center; justify-content: center;
+  opacity: 0; transition: opacity 0.3s ease;
+}
+#lbOverlay.visible { display: flex !important; opacity: 1; }
+
+.lb-container {
+  width: 92%; max-width: 420px; max-height: 85vh;
+  display: flex; flex-direction: column;
+  transform: scale(var(--ui-scale, 1));
+  transform-origin: center center;
+}
+
+/* Header */
+.lb-header {
+  text-align: center; padding: 15px 0 10px; position: relative;
+}
+.lb-title {
+  font-family: var(--font-title); font-size: 22px; font-weight: 900;
+  letter-spacing: 4px; text-transform: uppercase;
+  background: linear-gradient(180deg, #ffd700 0%, #ff8c00 100%);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 2px 8px rgba(255, 215, 0, 0.3));
+}
+.lb-subtitle {
+  font-family: var(--font-tech); font-size: 11px; color: #5a7a9a;
+  letter-spacing: 2px; margin-top: 4px;
+}
+.lb-close {
+  position: absolute; top: 10px; right: 0;
+  background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
+  color: rgba(255,255,255,0.5); font-size: 18px;
+  width: 36px; height: 36px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px);
+  transition: all 0.2s;
+}
+.lb-close:hover { color: #fff; border-color: #ff4444; background: rgba(255,50,50,0.1); }
+
+/* Scrollable list */
+.lb-list {
+  flex: 1; overflow-y: auto; padding: 8px 0;
+  scrollbar-width: thin; scrollbar-color: rgba(100,180,255,0.2) transparent;
+}
+.lb-list::-webkit-scrollbar { width: 4px; }
+.lb-list::-webkit-scrollbar-thumb { background: rgba(100,180,255,0.2); border-radius: 2px; }
+
+/* Row */
+.lb-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 14px; margin: 3px 0;
+  background: rgba(10, 18, 35, 0.6);
+  border: 1px solid rgba(100, 180, 255, 0.08);
+  border-radius: 6px;
+  transition: all 0.15s;
+}
+.lb-row:hover { background: rgba(20, 35, 65, 0.7); border-color: rgba(100,180,255,0.15); }
+
+/* Podium rows */
+.lb-row.rank-1 {
+  background: linear-gradient(135deg, rgba(255,215,0,0.08), rgba(255,140,0,0.05));
+  border-color: rgba(255,215,0,0.25);
+}
+.lb-row.rank-2 {
+  background: linear-gradient(135deg, rgba(192,192,192,0.06), rgba(150,150,150,0.04));
+  border-color: rgba(192,192,192,0.2);
+}
+.lb-row.rank-3 {
+  background: linear-gradient(135deg, rgba(205,127,50,0.06), rgba(180,100,30,0.04));
+  border-color: rgba(205,127,50,0.2);
+}
+
+/* Current player highlight */
+.lb-row.lb-me {
+  background: linear-gradient(135deg, rgba(0,200,255,0.1), rgba(0,100,255,0.06));
+  border-color: rgba(0,200,255,0.35);
+  box-shadow: 0 0 15px rgba(0,200,255,0.08);
+}
+
+.lb-rank {
+  font-family: var(--font-title); font-size: 16px; font-weight: 900;
+  min-width: 32px; text-align: center; color: #5a7a9a;
+}
+.rank-1 .lb-rank { color: #ffd700; text-shadow: 0 0 8px rgba(255,215,0,0.4); }
+.rank-2 .lb-rank { color: #c0c0c0; text-shadow: 0 0 6px rgba(192,192,192,0.3); }
+.rank-3 .lb-rank { color: #cd7f32; text-shadow: 0 0 6px rgba(205,127,50,0.3); }
+
+.lb-medal { font-size: 18px; min-width: 24px; text-align: center; }
+
+.lb-name {
+  flex: 1; font-family: var(--font-tech); font-size: 15px; font-weight: 700;
+  color: #c8dff0; letter-spacing: 0.5px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.lb-me .lb-name { color: #00e5ff; }
+
+.lb-score {
+  font-family: var(--font-title); font-size: 15px; font-weight: 700;
+  color: #8ab4d8; letter-spacing: 1px;
+}
+.lb-me .lb-score { color: #00e5ff; text-shadow: 0 0 6px rgba(0,229,255,0.3); }
+
+/* Separator between top 10 and "your zone" */
+.lb-separator {
+  text-align: center; padding: 8px 0;
+  font-family: var(--font-tech); font-size: 10px;
+  color: #3a5a7a; letter-spacing: 3px;
+}
+.lb-separator::before, .lb-separator::after {
+  content: ''; display: inline-block; width: 40px; height: 1px;
+  background: rgba(100,180,255,0.15); vertical-align: middle; margin: 0 10px;
+}
+
+/* Loading state */
+.lb-loading {
+  text-align: center; padding: 40px 0;
+  font-family: var(--font-tech); font-size: 13px; color: #4a6a8a;
+  letter-spacing: 2px;
+}
+.lb-loading::after {
+  content: ''; display: block; margin: 12px auto 0;
+  width: 30px; height: 30px; border: 2px solid rgba(0,200,255,0.1);
+  border-top-color: #00c8ff; border-radius: 50%;
+  animation: lbSpin 0.8s linear infinite;
+}
+@keyframes lbSpin { to { transform: rotate(360deg); } }
+
+/* Footer */
+.lb-footer {
+  padding: 10px 0 5px; text-align: center;
+}
+.lb-footer-info {
+  font-family: var(--font-tech); font-size: 10px; color: #3a5a7a;
+  letter-spacing: 1px;
+}
+
+/* =========================================================================
+   🏷️ PSEUDO POPUP (CHOOSE YOUR NAME)
+========================================================================= */
+#pseudoPopup {
+  position: fixed; inset: 0; z-index: 9500;
+  width: 100vw; height: 100vh;
+  background: rgba(2, 4, 10, 0.97);
+  backdrop-filter: blur(12px);
+  display: none; align-items: center; justify-content: center;
+}
+#pseudoPopup.visible { display: flex !important; }
+
+.pseudo-card {
+  width: 88%; max-width: 360px; padding: 30px 25px;
+  background: linear-gradient(135deg, rgba(10, 18, 40, 0.95), rgba(5, 10, 25, 0.95));
+  border: 1px solid rgba(0, 200, 255, 0.2);
+  clip-path: polygon(15px 0, 100% 0, 100% calc(100% - 15px), calc(100% - 15px) 100%, 0 100%, 0 15px);
+  text-align: center;
+  transform: scale(var(--ui-scale, 1));
+  transform-origin: center center;
+  animation: popInScaled 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+.pseudo-title {
+  font-family: var(--font-title); font-size: 18px; font-weight: 900;
+  color: #00e5ff; letter-spacing: 3px; text-transform: uppercase;
+  text-shadow: 0 0 10px rgba(0,229,255,0.4);
+  margin-bottom: 6px;
+}
+.pseudo-sub {
+  font-family: var(--font-tech); font-size: 12px; color: #5a7a9a;
+  letter-spacing: 1px; margin-bottom: 20px;
+}
+
+#pseudoInput {
+  width: 100%; padding: 14px;
+  font-family: var(--font-title); font-size: 16px; font-weight: 700;
+  letter-spacing: 2px; text-align: center;
+  color: #fff; background: rgba(0, 10, 25, 0.8);
+  border: 1px solid rgba(0, 200, 255, 0.25);
+  border-radius: 4px; outline: none;
+  transition: border-color 0.2s;
+}
+#pseudoInput:focus { border-color: #00e5ff; box-shadow: 0 0 12px rgba(0,229,255,0.15); }
+#pseudoInput::placeholder { color: #2a4a6a; font-weight: 400; letter-spacing: 1px; }
+
+.pseudo-error {
+  font-family: var(--font-tech); font-size: 11px; color: #ff4444;
+  min-height: 18px; margin-top: 6px; letter-spacing: 0.5px;
+}
+
+.pseudo-confirm {
+  width: 100%; margin-top: 15px; padding: 14px;
+  font-family: var(--font-title); font-size: 15px; font-weight: 900;
+  letter-spacing: 2px; text-transform: uppercase;
+  color: #000; background: linear-gradient(135deg, #00e5ff, #0080ff);
+  border: none; cursor: pointer;
+  clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
+  box-shadow: 0 0 20px rgba(0, 200, 255, 0.3);
+  transition: transform 0.1s, filter 0.1s;
+}
+.pseudo-confirm:active { transform: scale(0.96); }
+.pseudo-confirm:hover { filter: brightness(1.1); }
+.pseudo-confirm:disabled { opacity: 0.4; pointer-events: none; }
+
 </style>
+
+<!-- ===== FIREBASE SDK (Leaderboard) ===== -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 
 </head>
 <body>
@@ -1230,9 +1443,7 @@ body.playing .menuParticles {
 <audio id="sfxDeath" src="audio/death.mp3" preload="auto"></audio>
 <audio id="sfxIntro" src="audio/intro_burst.mp3" preload="auto"></audio>
 <audio id="sfxOverdrive" src="audio/overdrive_start.mp3" preload="auto"></audio>
-<audio id="bgmMenu" src="audio/Menu.mp3" loop preload="auto"></audio>
-<audio id="bgmGame" src="audio/musicgame.mp3" loop preload="auto"></audio>
-  
+
  <div id="overlayIntro">
     <canvas id="introEmbers"></canvas>
     <div class="introContent">
@@ -1349,7 +1560,7 @@ body.playing .menuParticles {
             <div id="rouletteResult" style="margin-top:15px; font-family:Orbitron; font-weight:900; font-size:18px; color:#00f0ff; height:25px; text-shadow: 0 0 10px rgba(0,240,255,0.6);"></div>
 
             <div style="display:flex; gap:10px; margin-top:15px;">
-                <button onclick="closeRoulette()" class="menuBtn" style="min-width:90px; padding:10px 0; background:rgba(255,0,0,0.1); border-color:#ff4444; color:#ff4444; box-shadow:none; font-size:12px;">LEAVE</button>
+                <button id="rouletteLeaveBtn" onclick="closeRoulette()" class="menuBtn" style="min-width:90px; padding:10px 0; background:rgba(255,0,0,0.1); border-color:#ff4444; color:#ff4444; box-shadow:none; font-size:12px;">LEAVE</button>
                 <button id="spinBtn" onclick="trySpin()" class="menuBtn" style="min-width:140px; padding:10px 0; background:linear-gradient(135deg, #00f0ff, #0080ff); color:#000; border:none; box-shadow:0 0 15px rgba(0,240,255,0.5); font-size:14px; text-shadow:none;">SPIN</button>
             </div>
         </div>
@@ -1358,17 +1569,35 @@ body.playing .menuParticles {
 
   <div id="optionsPanel">
     <div class="optionsBox">
-      <h2>SETTINGS</h2>
+      <h2 id="optTitle">SETTINGS</h2>
       <div class="optRow">
-        <label>🎵 Music</label>
+        <label id="optMusicLabel">🎵 Music</label>
         <input id="optMusic" type="range" min="0" max="100">
       </div>
       <div class="optRow">
-        <label>🔊 Effects</label>
+        <label id="optSfxLabel">🔊 Effects</label>
         <input id="optSfx" type="range" min="0" max="100">
       </div>
       <div class="optRow">
-        <label><input id="optMute" type="checkbox"> 🔇 Mute</label>
+        <label id="optMuteLabel"><input id="optMute" type="checkbox"> 🔇 Mute</label>
+      </div>
+      <div class="optRow">
+        <label id="optLangLabel">🌍 Language</label>
+        <select id="langSelect" onchange="changeLanguage(this.value)" style="background:rgba(0,10,25,0.8); color:#00e5ff; border:1px solid rgba(0,200,255,0.25); padding:6px 10px; border-radius:4px; font-family:var(--font-title); font-size:12px; font-weight:700; letter-spacing:1px; outline:none; cursor:pointer;">
+          <option value="en">English</option>
+          <option value="fr">Français</option>
+          <option value="es">Español</option>
+          <option value="it">Italiano</option>
+          <option value="de">Deutsch</option>
+          <option value="pt">Português</option>
+          <option value="ru">Русский</option>
+          <option value="tr">Türkçe</option>
+          <option value="zh">中文</option>
+          <option value="ja">日本語</option>
+          <option value="ko">한국어</option>
+          <option value="ar">العربية</option>
+          <option value="hi">हिन्दी</option>
+        </select>
       </div>
   
 
@@ -1490,6 +1719,37 @@ body.playing .menuParticles {
 
   </div>
 
+<!-- =========================================================
+     🏆 FIREBASE LEADERBOARD OVERLAY
+========================================================= -->
+<div id="lbOverlay">
+  <div class="lb-container">
+    <div class="lb-header">
+      <div class="lb-title">🏆 TOP PLAYERS</div>
+      <div class="lb-subtitle">GALAXY RUSH GLOBAL RANKINGS</div>
+      <div class="lb-close" onclick="closeLB()">✕</div>
+    </div>
+    <div class="lb-list" id="lbList">
+      <div class="lb-loading">LOADING RANKINGS...</div>
+    </div>
+    <div class="lb-footer">
+      <div class="lb-footer-info" id="lbFooterInfo"></div>
+    </div>
+  </div>
+</div>
+
+<!-- =========================================================
+     🏷️ PSEUDO POPUP (FIRST TIME NAME PICK)
+========================================================= -->
+<div id="pseudoPopup">
+  <div class="pseudo-card">
+    <div class="pseudo-title">PILOT ID</div>
+    <div class="pseudo-sub">CHOOSE YOUR CALLSIGN FOR THE LEADERBOARD</div>
+    <input type="text" id="pseudoInput" placeholder="YOUR NAME..." maxlength="16" autocomplete="off" spellcheck="false">
+    <div class="pseudo-error" id="pseudoError"></div>
+    <button class="pseudo-confirm" id="pseudoConfirmBtn" onclick="confirmPseudo()">CONFIRM</button>
+  </div>
+</div>
 
 </body>
 <script>
@@ -1529,6 +1789,10 @@ let lastOverdrivePct = -1;
 let reviveInvincible = false;
 let reviveInvTimer = 0;
 let overdriveEndingFlag = false;
+let newRecordThisRun = false;
+let leaderboardShownThisGameOver = false; // 🛡️ Sécurité anti-doublon
+
+
 // =========================================================
 // 1. BACKGROUND & INIT CANVAS
 // =========================================================
@@ -1629,19 +1893,18 @@ function resizeCanvas(){
   // 4. CALCUL DU SCALE UI (C'est là que tout se joue !)
   // Si l'écran est "étroit" (ratio < 1.9, ex: 16:9 classique), on réduit l'UI
   // pour éviter l'effet "zoomé"
-  const screenRatio = w / h;
-  let targetUiScale = gameScale;
+const screenRatio = w / h;
+let targetUiScale = gameScale;
 
-  if (screenRatio < 1.9) {
-      // Écran "Carré" ou 16:9 : On réduit l'échelle UI de 15% par rapport au jeu
-      targetUiScale = gameScale * 0.85; 
-  }
+if (screenRatio < 1.9) {
+    targetUiScale = gameScale * 0.85; 
+}
 
-  // On clamp pour rester lisible (ni minuscule, ni géant)
-  const uiScale = Math.min(Math.max(targetUiScale, 0.50), 1.1);
-  
-  // On applique la variable CSS
-  document.documentElement.style.setProperty('--ui-scale', uiScale);
+// Plus agressif sur les écrans bas
+const maxScale = h < 350 ? 0.65 : h < 450 ? 0.80 : 1.0;
+const uiScale = Math.min(Math.max(targetUiScale, 0.45), maxScale);
+
+document.documentElement.style.setProperty('--ui-scale', uiScale);
 }
 // Listeners
 window.addEventListener("resize", resizeCanvas, { passive:true });
@@ -1960,50 +2223,129 @@ if (touchZone){
 
 
 /* =========================================================
-   🔊 AUDIO MANAGER V19 (IOS NATIVE FIX - MUTE CORRIGÉ)
-   - Utilisation des balises <audio> standards
-   - Contourne le bug iOS qui ignore la propriété .volume
+   🔊 AUDIO MANAGER V18 (FINAL - RAM BUFFERING & MUTE FIX)
+   - Charge le son en RAM (Anti-coupure Android)
+   - Gestion du volume via GainNodes (Mute instantané)
 ========================================================= */
 
 const sfxDeath = document.getElementById("sfxDeath");
 const sfxOverdrive = document.getElementById("sfxOverdrive");
 const sfxIntro = document.getElementById("sfxIntro");
 
-const bgmMenu = document.getElementById("bgmMenu");
-const bgmGame = document.getElementById("bgmGame");
+// --- CONTEXTE AUDIO ---
+const AudioContext = window.AudioContext || window.webkitAudioContext;
+let audioCtx = new AudioContext();
 
+// --- CONFIGURATION ---
 const audioSettings = JSON.parse(localStorage.getItem("audioSettings") || "null") 
       || { music: 70, sfx: 80, mute: false };
 
 let currentMusicState = "none";
 let audioUnlocked = false;
 
-// --- 1. FONCTION PRINCIPALE (PLAY MUSIC) ---
+// STOCKE LES SONS EN RAM ICI
+const SOUNDS = {
+    menu: { buffer: null, source: null, gainNode: null, url: 'audio/Menu.mp3' },
+    game: { buffer: null, source: null, gainNode: null, url: 'audio/musicgame.mp3' }
+};
+
+// --- 1. LE CHARGEUR RAM ---
+async function loadSoundToRAM(key) {
+    try {
+        const response = await fetch(SOUNDS[key].url);
+        const arrayBuffer = await response.arrayBuffer();
+        const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+        SOUNDS[key].buffer = audioBuffer;
+        console.log(`✅ ${key} chargé en RAM`);
+    } catch (e) {
+        console.error(`❌ Erreur chargement ${key}:`, e);
+    }
+}
+
+// Chargement initial
+loadSoundToRAM('menu');
+loadSoundToRAM('game');
+
+// --- 2. LE LECTEUR DE BUFFER (AVEC GESTION MUTE) ---
+function playBuffer(key, volumeTarget) {
+    const sound = SOUNDS[key];
+    if (!sound.buffer) return; 
+
+    // Stop ancienne instance
+    stopBuffer(key);
+
+    // Création Source & Gain
+    const source = audioCtx.createBufferSource();
+    source.buffer = sound.buffer;
+    source.loop = true;
+
+    const gainNode = audioCtx.createGain();
+    
+    // 🛡️ FIX MUTE CRITIQUE : On vérifie le mute AVANT de donner le volume
+    // Si mute est coché, le volume de départ EST ZÉRO.
+    const startVol = audioSettings.mute ? 0 : volumeTarget;
+    gainNode.gain.value = startVol; 
+    
+    // Connexions
+    source.connect(gainNode);
+    gainNode.connect(audioCtx.destination);
+
+    source.start(0);
+    
+    // Sauvegarde des références
+    sound.source = source;
+    sound.gainNode = gainNode;
+}
+
+function stopBuffer(key) {
+    const sound = SOUNDS[key];
+    if (sound.source) {
+        try { 
+            // Fade out rapide
+            if(sound.gainNode) {
+                sound.gainNode.gain.setTargetAtTime(0, audioCtx.currentTime, 0.1);
+            }
+            setTimeout(() => {
+                if(sound.source) sound.source.stop();
+                sound.source = null;
+                sound.gainNode = null;
+            }, 150);
+        } catch(e){}
+    }
+}
+
+// --- 3. FONCTION PRINCIPALE (PLAY MUSIC) ---
 function playMusic(which) {
     if (currentMusicState === which) return;
     currentMusicState = which;
 
-    applyAudioSettings(); // Applique le MUTE avant de jouer
+    // Volume de base (sans prendre en compte le mute ici, c'est géré dans playBuffer)
+    const vol = Math.max(0, Math.min(1, audioSettings?.music / 100 || 0.6));
+
+    if (audioCtx.state === 'suspended') audioCtx.resume();
 
     if (which === "game") {
-        if (bgmMenu) bgmMenu.pause();
-        if (bgmGame) { bgmGame.currentTime = 0; bgmGame.play().catch(()=>{}); }
+        stopBuffer('menu');
+        playBuffer('game', vol);
     } 
     else if (which === "menu") {
-        if (bgmGame) bgmGame.pause();
-        if (bgmMenu) { bgmMenu.currentTime = 0; bgmMenu.play().catch(()=>{}); }
+        stopBuffer('game');
+        playBuffer('menu', vol * 0.9);
     } 
     else {
-        if (bgmMenu) bgmMenu.pause();
-        if (bgmGame) bgmGame.pause();
+        stopBuffer('menu');
+        stopBuffer('game');
         currentMusicState = "none";
     }
 }
 
-// --- 2. SFX ---
+// --- 4. SFX (Compatible Mute) ---
 function playSFX(originalTrack, volumeScale = 1.0) {
-    // Si mute global OU slider SFX à 0, on ne joue rien
-    if (!originalTrack || audioSettings.mute || audioSettings.sfx === 0) return;
+    // Si MUTE est activé, on ne joue rien du tout
+    if (!originalTrack || audioSettings.mute) return;
+    
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+
     const clone = originalTrack.cloneNode();
     clone.volume = Math.max(0, Math.min(1, (audioSettings.sfx / 100) * volumeScale));
     clone.play().catch(()=>{});
@@ -2013,24 +2355,23 @@ function playSFX(originalTrack, volumeScale = 1.0) {
 function stopMusic() { playMusic("none"); }
 
 /* =========================
-   3. LISTENERS UI & MUTE iOS
+   LISTENERS UI (MUTE INSTANTANÉ)
 ========================= */
 const optMusic = document.getElementById("optMusic");
 const optSfx   = document.getElementById("optSfx");
 const optMute  = document.getElementById("optMute");
 
+// Fonction Maître du Volume
 function applyAudioSettings() {
-    // 🔥 LE FIX EST ICI : iOS ignore volume=0, on DOIT forcer .muted
-    const isMuted = audioSettings.mute || audioSettings.music === 0;
-    const vol = isMuted ? 0 : Math.max(0, Math.min(1, audioSettings.music / 100));
+    // Si mute coché, volume cible = 0. Sinon, volume du slider.
+    const vol = audioSettings.mute ? 0 : (audioSettings.music / 100);
     
-    if (bgmMenu) {
-        bgmMenu.volume = vol * 0.9; // Pour Android/PC
-        bgmMenu.muted = isMuted;    // Obligatoire pour iOS
+    // On applique immédiatement aux musiques en cours
+    if (SOUNDS.menu.gainNode) {
+        SOUNDS.menu.gainNode.gain.setTargetAtTime(vol * 0.9, audioCtx.currentTime, 0.05);
     }
-    if (bgmGame) {
-        bgmGame.volume = vol;       // Pour Android/PC
-        bgmGame.muted = isMuted;    // Obligatoire pour iOS
+    if (SOUNDS.game.gainNode) {
+        SOUNDS.game.gainNode.gain.setTargetAtTime(vol, audioCtx.currentTime, 0.05);
     }
 }
 
@@ -2042,7 +2383,7 @@ if (optMusic && optSfx && optMute) {
     optMusic.addEventListener("input", () => {
         audioSettings.music = +optMusic.value;
         localStorage.setItem("audioSettings", JSON.stringify(audioSettings));
-        applyAudioSettings();
+        applyAudioSettings(); // Mise à jour live
     });
 
     optSfx.addEventListener("input", () => {
@@ -2053,31 +2394,46 @@ if (optMusic && optSfx && optMute) {
     optMute.addEventListener("change", () => {
         audioSettings.mute = optMute.checked;
         localStorage.setItem("audioSettings", JSON.stringify(audioSettings));
-        applyAudioSettings(); // Coupe ou remet la musique instantanément
+        
+        // Mute Physique (Coupe tout immédiatement)
+        if (audioSettings.mute) {
+            if (SOUNDS.menu.gainNode) SOUNDS.menu.gainNode.gain.value = 0;
+            if (SOUNDS.game.gainNode) SOUNDS.game.gainNode.gain.value = 0;
+        } else {
+            // Unmute : On rétablit le volume
+            applyAudioSettings();
+            
+            // Relance sécurité si le moteur s'est endormi
+            if (currentMusicState !== "none" && audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+        }
     });
 }
 
 function unlockAllAudio() {
   if (audioUnlocked) return;
   audioUnlocked = true;
-  [sfxDeath, sfxIntro, sfxOverdrive, bgmMenu, bgmGame].forEach(snd => { if(snd) snd.load(); });
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+  [sfxDeath, sfxIntro, sfxOverdrive].forEach(snd => { if(snd) snd.load(); });
 }
 
 document.addEventListener("visibilitychange", () => {
     if (document.hidden) {
+        // L'app passe en arrière-plan (Pub, SMS, Verrouillage)
+        audioCtx.suspend();
         if (gameRunning) {
             window._wasRunning = true;
-            stopLoop();
+            stopLoop(); // Coupe le moteur proprement
         }
-        if (bgmMenu && !bgmMenu.paused) bgmMenu.pause();
-        if (bgmGame && !bgmGame.paused) bgmGame.pause();
     } else {
+        // L'app revient au premier plan
+        audioCtx.resume();
         if (window._wasRunning) {
             window._wasRunning = false;
+            // startLoop() contient déjà "lastTS = 0" ce qui empêche le saut temporel !
             startLoop(); 
         }
-        // Relance la musique en revenant sur l'app
-        playMusic(currentMusicState);
     }
 });
 /* =========================================
@@ -2327,7 +2683,6 @@ let _lastCombo = -1;
 let coinsCollected = 0;
 let pendingCoins   = 0;
 
-let newRecordThisRun = false;
 /* =========================================================
    💾 DATA & SKIN ENGINE V2 (ORDRE CORRIGÉ)
 ========================================================= */
@@ -2662,13 +3017,13 @@ function updateRouletteUI() {
         // --- STEP 1: READY TO GO ---
         if(status) status.textContent = "READY"; 
         if(spinBtn) { 
-            spinBtn.textContent = "FREE SPIN 🎁"; 
+            spinBtn.textContent = (typeof i18n !== "undefined" ? i18n.freeSpin : "FREE SPIN 🎁"); 
             spinBtn.style.background = "linear-gradient(135deg, #00f0ff, #0080ff)"; 
             spinBtn.style.opacity = "1"; 
             spinBtn.style.cursor = "pointer"; 
         }
         if(shopStatus) { 
-            shopStatus.textContent = "FREE SPIN READY!"; 
+            shopStatus.textContent = (typeof i18n !== "undefined" ? i18n.freeSpinReady : "FREE SPIN READY!"); 
             shopStatus.style.color = "#00f0ff"; 
         }
 
@@ -2677,13 +3032,13 @@ function updateRouletteUI() {
         let left = ADS_MAX_PER_DAY - adsWatchedToday;
         if(status) status.textContent = "READY";
         if(spinBtn) { 
-            spinBtn.textContent = `SPIN (${left} LEFT) 📺`; 
+            spinBtn.textContent = (typeof i18n !== "undefined" ? i18n.spinLeft.replace("${n}", left) : `SPIN (${left} LEFT) 📺`); 
             spinBtn.style.background = "linear-gradient(135deg, #00f0ff, #0080ff)";
             spinBtn.style.opacity = "1"; 
             spinBtn.style.cursor = "pointer"; 
         }
         if(shopStatus) { 
-            shopStatus.textContent = `${left} SPINS LEFT`; 
+            shopStatus.textContent = (typeof i18n !== "undefined" ? i18n.spinsLeft.replace("${n}", left) : `${left} SPINS LEFT`); 
             shopStatus.style.color = "#00f0ff"; 
         }
 
@@ -2694,7 +3049,7 @@ function updateRouletteUI() {
         if(status) status.textContent = "EMPTY"; 
         
         if(spinBtn) { 
-            spinBtn.textContent = `COME BACK IN ${timeLeft}`; // Super clear instruction
+            spinBtn.textContent = (typeof i18n !== "undefined" ? i18n.comeBack.replace("${t}", timeLeft) : `COME BACK IN ${timeLeft}`);
             spinBtn.style.background = "#333"; 
             spinBtn.style.color = "#777";
             spinBtn.style.boxShadow = "none";
@@ -2703,7 +3058,7 @@ function updateRouletteUI() {
         }
         
         if(shopStatus) { 
-            shopStatus.textContent = `RESET IN: ${timeLeft}`; // Explains the wait
+            shopStatus.textContent = (typeof i18n !== "undefined" ? i18n.resetIn.replace("${t}", timeLeft) : `RESET IN: ${timeLeft}`);
             shopStatus.style.color = "#ff5555"; 
         }
     }
@@ -2738,7 +3093,7 @@ function trySpin() {
     if (freeSpinUsed && adsWatchedToday >= ADS_MAX_PER_DAY) {
         const resultText = document.getElementById("rouletteResult");
         if (resultText) {
-            resultText.textContent = "NO MORE SPINS TODAY!";
+            resultText.textContent = (typeof i18n !== "undefined" ? i18n.noMoreSpins : "NO MORE SPINS TODAY!");
             resultText.style.color = "#ff4444";
         }
         return;
@@ -2874,11 +3229,12 @@ function executeSpin() {
 let canContinueThisRun = true;
 let isWatchingAd = false;
 let continueTimeout = null;
-let leaderboardShownThisGameOver = false;
-let reviveAttempted = false;
+
+ 
 
 function maybeShowLeaderboardAfterGameOver() {}
 
+// 🛡️ FIX : hideContinuePopup devient "bête". Elle ne gère QUE l'interface visuelle.
 function hideContinuePopup() {
     const popup = document.getElementById("continuePopup");
     if (continueTimeout) clearTimeout(continueTimeout);
@@ -2886,29 +3242,50 @@ function hideContinuePopup() {
     if (popup) popup.style.display = "none";
 }
 
-function showContinuePopup(durationSec = 4.0) {
+// 🛡️ FIX : Câblage des callbacks onAccept et onRefuse
+function showContinuePopup(durationSec = 4.0, callbacks = {}) {
     const popup = document.getElementById("continuePopup");
     const bar = document.getElementById("continueBar");
     const btn = document.getElementById("continueAdBtn");
+    const skipBtn = document.getElementById("btnSkip"); // Si tu as un bouton pour passer
 
-    if (!popup || !bar || !btn || !canContinueThisRun) return;
+    if (!popup || !bar || !btn || !canContinueThisRun) {
+        if (callbacks.onRefuse) callbacks.onRefuse();
+        return;
+    }
 
     hideContinuePopup();
     popup.style.display = "flex";
     btn.disabled = false;
-    btn.innerHTML = `<span class="btn-glitch"></span><span class="btn-txt">📺 WATCH AD & REVIVE</span>`;
+    btn.innerHTML = (typeof i18n !== "undefined") ? i18n.reviveBtn : '<span class="btn-glitch"></span><span class="btn-txt">📺 WATCH AD & REVIVE</span>';
 
     bar.style.transition = "none";
     bar.style.width = "100%";
-    void bar.offsetWidth; 
+    void bar.offsetWidth;
 
     requestAnimationFrame(() => {
         bar.style.transition = `width ${durationSec}s linear`;
         bar.style.width = "0%";
     });
 
-    continueTimeout = setTimeout(() => {
+    // ACTION : Le joueur clique sur le bouton de pub
+    btn.onclick = () => {
         hideContinuePopup();
+        if (callbacks.onAccept) callbacks.onAccept();
+    };
+
+    // ACTION : Le joueur clique sur "Non merci" (s'il existe)
+    if (skipBtn) {
+        skipBtn.onclick = () => {
+            hideContinuePopup();
+            if (callbacks.onRefuse) callbacks.onRefuse();
+        };
+    }
+
+    // ACTION : Le temps est écoulé
+    continueTimeout = setTimeout(() => {
+        hideContinuePopup(); 
+        if (callbacks.onRefuse) callbacks.onRefuse();
     }, durationSec * 1000);
 }
 
@@ -2917,39 +3294,34 @@ function showContinuePopup(durationSec = 4.0) {
 ========================================= */
 function handleContinueAd() {
     if (isWatchingAd || !canContinueThisRun) return;
+
     isWatchingAd = true;
-    canContinueThisRun = false;
-    reviveAttempted = true;
+    canContinueThisRun = false; // On consomme le revive
 
-    const btn = document.getElementById("continueAdBtn");
-    if (btn) btn.innerHTML = `<span class="btn-txt">LOADING AD...</span>`;
-    if (continueTimeout) clearTimeout(continueTimeout);
-
+    // 🔇 COUPURE AUDIO
     playMusic("none");
-
-    let adSafetyTimeout = setTimeout(() => {
-        console.warn("⚠️ Ad fallback triggered (Timeout)");
-        isWatchingAd = false;
-        hideContinuePopup();
-    }, 10000);
 
     if (typeof showRewardedAd === "function") {
         showRewardedAd(
-            () => {
-                clearTimeout(adSafetyTimeout);
+            () => { // SUCCÈS
+                isWatchingAd = false;
+                // 📺 Flag : le joueur a regardé une pub revive
+                // → on lui épargnera l'interstitielle à la prochaine mort
+                if (typeof _justWatchedRevive !== "undefined") _justWatchedRevive = true;
                 revivePlayerAfterAd();
-                isWatchingAd = false;
             },
-            () => {
-                clearTimeout(adSafetyTimeout);
+            () => { // ÉCHEC / FERMETURE SANS RÉCOMPENSE
                 isWatchingAd = false;
-                hideContinuePopup(); 
+                playMusic("none");
+                // 🛡️ FIX : Si la pub échoue, c'est un game over définitif
+                const s = Math.floor(score || 0);
+                finalizeAbsoluteGameOver(s);
             }
         );
     } else {
-        clearTimeout(adSafetyTimeout);
         isWatchingAd = false;
-        hideContinuePopup();
+        const s = Math.floor(score || 0);
+        finalizeAbsoluteGameOver(s);
     }
 }
 
@@ -2957,38 +3329,42 @@ function handleContinueAd() {
    REVIVE PLAYER (CORRIGÉ - FIX TACTILE COMPLET)
 ========================================= */
 function revivePlayerAfterAd() {
-    hideContinuePopup();
-    
+    // 🛡️ FIX CRITIQUE : C'est SEULEMENT ici qu'on l'autorise à mourir à nouveau
+    gameOverTriggered = false;
+
+    // 1. UI RESET
     if (overlayGameOver) {
         overlayGameOver.classList.remove("visible");
         overlayGameOver.style.display = "none";
     }
 
-    setUIState("playing"); 
-    gameRunning = false; 
+    setUIState("playing");
+    gameRunning = false;
 
+    // 2. RESET PHYSIQUE DU JOUEUR
     player.x = 100;
     player.y = BASE_H * 0.5;
     player.vy = 0;
     player.width = BASE_PLAYER_W;
     player.height = BASE_PLAYER_H;
-    
     jetOn = false;
 
+    // 3. NETTOYAGE DES FX FIGÉS
     shockwave = null;
     bloom = null;
     dyingFromCircle = null;
-
-    overdriveActive = false; 
+    overdriveActive = false;
     overdriveTimer = 0;
     player.invincible = true;
 
+    // 4. NETTOYAGE ZONE
     obstacles = obstacles.filter(o => o.x > player.x + 800);
     bullets = [];
-    
-    lastSpawnTime = renderTime + 1000; 
-    draw(); 
+    lastSpawnTime = renderTime + 1000;
 
+    draw();
+
+    // 5. OVERLAY "READY?"
     const oldOverlay = document.getElementById("resumeOverlay");
     if (oldOverlay) oldOverlay.remove();
 
@@ -2999,23 +3375,22 @@ function revivePlayerAfterAd() {
         display: flex; flex-direction: column; align-items: center; justify-content: center;
         background: rgba(0,0,0,0.5); z-index: 99999; cursor: pointer; pointer-events: auto !important;
     `;
-    
+
     resumeOverlay.innerHTML = `
-        <div style="font-family:Orbitron, sans-serif; font-size:40px; color:#00f0ff; text-shadow:0 0 15px cyan; margin-bottom:10px;">READY?</div>
-        <div style="font-family:Rajdhani, sans-serif; font-size:20px; color:white; letter-spacing:2px; animation: blink 1s infinite;">TAP TO START</div>
+        <div style="font-family:Orbitron, sans-serif; font-size:40px; color:#00f0ff; text-shadow:0 0 15px cyan; margin-bottom:10px;">${typeof i18n !== "undefined" ? i18n.ready : "READY?"}</div>
+        <div style="font-family:Rajdhani, sans-serif; font-size:20px; color:white; letter-spacing:2px; animation: blink 1s infinite;">${typeof i18n !== "undefined" ? i18n.tapStart : "TAP TO START"}</div>
     `;
 
     document.body.appendChild(resumeOverlay);
 
-    let resumed = false; 
-
+    // 6. RELANCE DU JEU
     const resumeGame = (e) => {
-        if (resumed) return;
-        resumed = true;
-        if (e) { e.preventDefault(); e.stopPropagation(); }
-        
+        if (e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
         resumeOverlay.remove();
-        
         gameRunning = true;
         if (typeof lastTS !== "undefined") lastTS = performance.now();
         startLoop();
@@ -3024,10 +3399,10 @@ function revivePlayerAfterAd() {
             playMusic("game");
         }
 
-        document.body.classList.add("overdriveActive"); 
-        
-        setTimeout(() => { 
-            player.invincible = false; 
+        document.body.classList.add("overdriveActive");
+
+        setTimeout(() => {
+            player.invincible = false;
             document.body.classList.remove("overdriveActive");
         }, 3000);
     };
@@ -3036,53 +3411,63 @@ function revivePlayerAfterAd() {
     resumeOverlay.ontouchstart = resumeGame;
 }
 
-let hasMultiplied = false;
+let hasMultiplied = false; // Sécurité pour empêcher de multiplier 10 fois
 
-function handleGameOver() {
+// 🛡️ FONCTION : Gère la fin ABSOLUE (quand on est sûr que le joueur ne revivra pas)
+// 🛡️ FONCTION : Gère la fin ABSOLUE (quand on est sûr que le joueur ne revivra pas)
+function finalizeAbsoluteGameOver(finalScore) {
+    console.log("🏁 Fin absolue de la partie. Score final :", finalScore);
+
+    // 1. On l'enregistre d'abord en local pour être sûr de ne pas le perdre
+    // Cette fonction vérifie déjà si le score est meilleur que le précédent envoyé
+    saveScoreOffline(finalScore);
+
+    // 2. On tente immédiatement de l'envoyer aux serveurs Google
+    // flushPendingScores() va parcourir les scores en attente et essayer de les "pousser"
+    flushPendingScores();
+
+    // 3. Optionnel : Affichage du classement après un petit délai (1.2s)
+    // Cela laisse le temps aux animations de Game Over de se finir
+    if (typeof maybeShowLeaderboardAfterGameOver === "function") {
+        maybeShowLeaderboardAfterGameOver(1200);
+    }
+}
+
+async function handleGameOver() {
     _startRunLock = false;
     if (gameOverTriggered) return;
     gameOverTriggered = true;
 
-    setUIState("gameover"); 
+    leaderboardShownThisGameOver = false;
+
+    setUIState("gameover");
     pauseLoop();
 
     const tz = document.getElementById("touchZone");
     if (tz) tz.style.pointerEvents = "none";
 
     const s = Math.floor(score || 0);
-    const previousBest = bestScore || 0; 
-    
+    const previousBest = bestScore || 0;
+
     if (s > previousBest) {
         bestScore = s;
-        newRecordThisRun = true; 
+        newRecordThisRun = true;
     }
 
+    // Sauvegarde initiale des pièces et du score en local
     coinsBank += (coinsCollected || 0);
     Player.coins = coinsBank;
     Player.bestScore = bestScore;
-    Player.save();
+    if (typeof Player.save === "function") Player.save();
 
-    // 🏆 APPLE GAME CENTER : ENVOI DU SCORE (CORRIGÉ AVEC LE NOUVEAU PLUGIN)
-    if (newRecordThisRun && bestScore > 0) {
-        const AppleGameCenter = window.Capacitor && window.Capacitor.Plugins.AppleGameCenter;
-        if (AppleGameCenter) {
-            console.log("🍏 Envoi du nouveau record au Game Center :", bestScore);
-            AppleGameCenter.submitScore({
-                leaderboardId: "galaxyrush.bestscore",
-                score: bestScore
-            }).catch(e => console.warn("Erreur Game Center :", e));
-        } else {
-            console.warn("⚠️ AppleGameCenter non trouvé pour l'envoi du score.");
-        }
-    }
+    if (typeof updateMenuStats === "function") updateMenuStats();
 
-    if (typeof updateMenuStats === 'function') updateMenuStats();
-
+    // ⚡ FIX UX : On remplit l'UI Game Over TOUT DE SUITE 
     safeText(finalScoreEl, s.toLocaleString());
     safeText(finalBestEl, (bestScore || 0).toLocaleString());
     safeText(finalCoinsEl, (coinsCollected || 0).toLocaleString());
 
-    // --- 💰 BOUTON MULTIPLICATEUR ---
+    // --- 💰 GESTION DU BOUTON MULTIPLICATEUR ---
     const multiplyBtn = document.getElementById("multiplyBtn");
     if (multiplyBtn) {
         if (coinsCollected > 0 && !hasMultiplied) {
@@ -3095,31 +3480,43 @@ function handleGameOver() {
         }
     }
 
-    // --- 🏆 NEW RECORD UI ---
-    const nrEl = document.getElementById("newRecord");
-    const rankBtn = document.getElementById("rankChangedBtn");
+    // --- 🏆 GESTION NEW RECORD ---
+ const nrEl = document.getElementById("newRecord");
+const rankBtn = document.getElementById("rankChangedBtn");
 
-    if (newRecordThisRun) {
-        if (nrEl) {
-            nrEl.style.display = "block";
-            requestAnimationFrame(() => {
-                nrEl.style.opacity = "1";
-                nrEl.style.transform = "scale(1)";
-            });
-        }
-        if (rankBtn) rankBtn.style.display = "block";
-    } else {
-        if (nrEl) {
-            nrEl.style.display = "none";
-            nrEl.style.opacity = "0";
-            nrEl.style.transform = "scale(0.6)";
-        }
-        if (rankBtn) rankBtn.style.display = "none";
-    }
+if (newRecordThisRun) {
+    nrEl.style.display = "block";
+    requestAnimationFrame(() => {
+        nrEl.style.opacity = "1";
+        nrEl.style.transform = "scale(1)";
+    });
+    if (rankBtn) rankBtn.style.display = "block";
+} else {
+    nrEl.style.display = "none";
+    nrEl.style.opacity = "0";
+    nrEl.style.transform = "scale(0.6)";
+    if (rankBtn) rankBtn.style.display = "none";
+}
+    // --- DEBUG REVIVE ---
+    console.log("🛑 DEBUG REVIVE :", {
+        canContinue: canContinueThisRun,
+        adReady: typeof isAdSystemReady === "function" ? isAdSystemReady() : "Fonction manquante !"
+    });
 
-    // REVIVE si dispo, sinon rien
+    // --- 🔀 SÉPARATION DU FLOW (REVIVE VS LEADERBOARD) ---
     if (canContinueThisRun && isAdSystemReady()) {
-        showContinuePopup(4.5);
+        // 🛡️ FIX : Passage des callbacks propres !
+        showContinuePopup(4.5, {
+            onAccept: () => {
+                handleContinueAd();
+            },
+            onRefuse: () => {
+                finalizeAbsoluteGameOver(s);
+            }
+        });
+    } else {
+        // Cas 2 : Fin absolue de la partie (Pas de revive possible)
+        finalizeAbsoluteGameOver(s);
     }
 }
 // ================================
@@ -7017,22 +7414,22 @@ function jetStop(){
 
 
 // ================= RUN RESET (VERSION FINALE) =================
-function resetRun(){
+function resetRun() {
   // --- 1. PLAYER PHYSICS ---
   player.x = 100;
   player.y = BASE_H / 2;
-  player.width  = BASE_PLAYER_W;
+  player.width = BASE_PLAYER_W;
   player.height = BASE_PLAYER_H;
   player.vy = 0;
 
   jetOn = false;
-  
+
   // --- 2. SYSTÈME DE PARTICULES ---
   if (playerParticles) playerParticles.length = 0;
   if (particles) particles.length = 0;
-  
-  poolIndex = 0; 
-  if (typeof particlePool !== 'undefined') {
+
+  poolIndex = 0;
+  if (typeof particlePool !== "undefined") {
     for (let i = 0; i < particlePool.length; i++) {
       particlePool[i].active = false;
       particlePool[i]._inList = false;
@@ -7050,31 +7447,32 @@ function resetRun(){
   combo = 1;
   lastCoinTime = 0;
 
-  // 🔥 FIX OVERDRIVE COMPLET 🔥
+  // 🔥 FIX OVERDRIVE COMPLET
   overdriveActive = false;
-  overdriveTimer = 0; 
-  // if (typeof overdriveGauge !== "undefined") overdriveGauge = 0; 
+  overdriveTimer = 0;
+  // if (typeof overdriveGauge !== "undefined") overdriveGauge = 0;
 
   // --- 5. SPAWN & DIFFICULTÉ ---
-  lastSpawn = -5000; 
-  lastSpawnTime = -5000; 
+  lastSpawn = -5000;
+  lastSpawnTime = -5000;
   lastTrailSpawn = 0;
 
   // Reset Cache Position
   farRightCache = 0;
   farRightFrame = -1;
 
-  obstacleSpeed = 3.8; 
+  obstacleSpeed = 3.8;
   lastType = null;
-  
-  recentHazards = []; 
+
+  // 🔥 IMPORTANT : reset historique danger
+  recentHazards = [];
 
   // --- 6. FX & VISUELS ---
   shake = 0;
   shakeTime = 0;
   shockwave = null;
   bloom = null;
-  
+
   lastBarTime = 0;
   dyingTimer = 0;
   dyingFromCircle = null;
@@ -7085,43 +7483,44 @@ function resetRun(){
   newRecordThisRun = false;
   canContinueThisRun = true;
   isWatchingAd = false;
-  leaderboardShownThisGameOver = false; // 🍎 Sécurité anti-doublon
-  reviveAttempted = false;              // 🍎 Sécurité UX post-pub
-  
+  leaderboardShownThisGameOver = false;
+
   const nrEl = document.getElementById("newRecord");
   if (nrEl) {
-      nrEl.style.display = "none"; 
-      nrEl.style.opacity = "0";
-      nrEl.style.transform = "scale(0.6)";
+    nrEl.style.display = "none";
+    nrEl.style.opacity = "0";
+    nrEl.style.transform = "scale(0.6)";
   }
-
+// ← AJOUTER ICI
+const rankBtn = document.getElementById("rankChangedBtn");
+if (rankBtn) rankBtn.style.display = "none";
   // --- 8. UI RESET (SAFE) ---
   if (UI) {
-      if (UI.score) UI.score.textContent = "0";
-      if (UI.coins) UI.coins.textContent = "0";
-      if (UI.combo) UI.combo.textContent = "1";
-      
-      if (UI.overFill) {
-          UI.overFill.style.transition = "none"; 
-          UI.overFill.style.height = "0%";
-          void UI.overFill.offsetWidth; 
-          UI.overFill.style.transition = ""; 
-      }
-      
-      if (UI.overBar) UI.overBar.classList.remove("active");
+    if (UI.score) UI.score.textContent = "0";
+    if (UI.coins) UI.coins.textContent = "0";
+    if (UI.combo) UI.combo.textContent = "1";
+
+    if (UI.overFill) {
+      UI.overFill.style.transition = "none";
+      UI.overFill.style.height = "0%";
+      void UI.overFill.offsetWidth;
+      UI.overFill.style.transition = "";
+    }
+
+    if (UI.overBar) UI.overBar.classList.remove("active");
   }
 
   // --- 9. MULTIPLIER RESET ---
   if (typeof hasMultiplied !== "undefined") {
-      hasMultiplied = false;
+    hasMultiplied = false;
   }
-  
+
   const finalCoinsEl = document.getElementById("finalCoins");
   if (finalCoinsEl) {
-      finalCoinsEl.style.color = "";
-      finalCoinsEl.style.textShadow = "none";
-      finalCoinsEl.style.fontSize = "";
-      finalCoinsEl.style.fontWeight = "";
+    finalCoinsEl.style.color = "";
+    finalCoinsEl.style.textShadow = "none";
+    finalCoinsEl.style.fontSize = "";
+    finalCoinsEl.style.fontWeight = "";
   }
 }
 
@@ -7131,7 +7530,7 @@ function resetRun(){
 
 let _startRunLock = false;
 
-function startRun(e){
+function startRun(e) {
   // 🔒 VERROU : anti double-tap
   if (_startRunLock) return;
 
@@ -7140,34 +7539,35 @@ function startRun(e){
 
   if (uiState === "playing" || gameState === "playing") return;
 
-  _startRunLock = true; 
+  _startRunLock = true;
 
-  if (e){
+  if (e) {
     e.preventDefault();
     e.stopPropagation();
   }
 
-  // 1. NETTOYAGE VISUEL FORCÉ
+  // 1. NETTOYAGE VISUEL FORCÉ (Anti-BlackScreen)
   const intro = document.getElementById("overlayIntro");
-  if (intro){
+  if (intro) {
     intro.style.display = "none";
     intro.style.opacity = "0";
     intro.style.pointerEvents = "none";
   }
+
   const transFX = document.getElementById("transitionFX");
   if (transFX) {
-      transFX.classList.remove("flash");
-      transFX.style.opacity = "0";
+    transFX.classList.remove("flash");
+    transFX.style.opacity = "0";
   }
+
   const nr = document.getElementById("newRecord");
   if (nr) nr.style.display = "none";
 
-  // 2. LOGIQUE JEU (Sécurité Ceinture & Bretelles)
+  // 2. LOGIQUE JEU
   gameOverTriggered = false;
   canContinueThisRun = true;
   isWatchingAd = false;
   leaderboardShownThisGameOver = false;
-  reviveAttempted = false;
 
   if (typeof hideContinuePopup === "function") hideContinuePopup();
   if (typeof stopShopPreviewLoop === "function") stopShopPreviewLoop();
@@ -7175,8 +7575,8 @@ function startRun(e){
 
   if (!UI?.score && typeof bindUI === "function") bindUI();
   if (!noiseCanvas && typeof initNoise === "function") initNoise();
-  
-  // 🔥 ESSENTIEL : Resize immédiat
+
+  // 🔥 essentiel : resize immédiat
   if (typeof resizeCanvas === "function") resizeCanvas();
 
   // 3. LANCEMENT
@@ -7184,7 +7584,7 @@ function startRun(e){
   document.body.classList.add("playing");
 
   if (typeof resetRun === "function") resetRun();
-  
+
   // Reset timers techniques
   if (typeof resetLoopTimers === "function") resetLoopTimers(true);
 
@@ -7192,9 +7592,12 @@ function startRun(e){
   gameRunning = true;
 
   if (typeof startLoop === "function") startLoop();
+
+  // Note : _startRunLock sera réarmé au retour menu / game over
 }
 
 // ================= LOOP TIMERS RESET (UNIFIÉ) =================
+// ⚠️ IMPORTANT : on ne touche pas au "renderTime" sauf quand on démarre un NOUVEAU run.
 function resetLoopTimers(hard = false){
   lastTS  = 0;
   accTime = 0;
@@ -7202,27 +7605,25 @@ function resetLoopTimers(hard = false){
   fxTick  = 0;
 
   if (hard){
-    renderTime = 0; 
+    renderTime = 0; // ✅ seulement au lancement d’un run neuf
   }
 }
 
+
+
 // ================= GAME OVER / MENU =================
-function goToMenu() {
-  _startRunLock = false;
-  gameOverTriggered = false;
-  document.body.classList.remove("playing");
-
-  // 🔥 1. Libère la mémoire GPU du Canvas AVANT de lancer le menu
-  stopGameLoop();
-
-  // 📺 2. Change l'état de l'UI (ce qui lance la vidéo et la musique proprement)
+function goToMenu(){
+  _startRunLock = false;          // 🔓 RÉARMEMENT CRITIQUE
   setUIState("menu");
+  document.body.classList.remove("playing");
+  gameOverTriggered = false;
 }
+
 
 function onGameOverCleanup(){
   gameRunning = false;
-  stopLoop();               
-  resetLoopTimers(false);   
+  stopLoop();               // ✅ coupe RAF
+  resetLoopTimers(false);   // ✅ pas de reset renderTime ici (sinon jitter menu/fx)
   fxCalm = 0;
 }
 
@@ -7254,22 +7655,30 @@ const MENU_VIDEO_SRC = menuVideo?.dataset?.src || "";
 function startMenuVideo(){
   if (!menuVideo || !MENU_VIDEO_SRC) return;
 
-  // On injecte la source une seule fois pour toute la durée de vie de l'app
   if (!menuVideo.src){
     menuVideo.src = MENU_VIDEO_SRC;
+    menuVideo.load();
   }
 
+  menuVideo.currentTime = 0;
   const p = menuVideo.play();
   if (p && p.catch) p.catch(()=>{});
 }
 
+// Remplace ta fonction à la ligne 1162 par celle-ci :
 function stopMenuVideo(){
   if (!menuVideo) return;
 
   try {
-    // 🛡️ On se contente de mettre en pause. 
-    // ON NE FAIT PLUS removeAttribute("src") NI load() !
     menuVideo.pause();
+    // 🛡️ On attend 100ms que le moteur vidéo ait fini de pauser 
+    // avant de vider le SRC, pour éviter le crash Android.
+    setTimeout(() => {
+        if (uiState === "playing") { // On vérifie qu'on est toujours en jeu
+            menuVideo.removeAttribute("src");
+            menuVideo.load(); 
+        }
+    }, 100);
   } catch(e) {
     console.error("Video Stop Error Safe", e);
   }
@@ -7290,6 +7699,42 @@ function stopGameLoop(){
   fxCalm = 0.6;
 }
 
+
+// ================= MENU ENTRY (CORRIGÉ : AUDIO & SYNC) =================
+function startMenu(){
+  // 🛡️ FIX CRITIQUE : On utilise la fonction centrale au lieu de uiState = "menu"
+  // Cela garantit l'appel à playMusic("menu") et l'arrêt des éléments de jeu.
+  if (typeof setUIState === "function") {
+    setUIState("menu"); 
+  } else {
+    uiState = "menu";
+    gameState = "menu";
+  }
+
+  gameRunning = false;
+  document.body.classList.remove("playing");
+
+  // Arrêt moteur et vidéo
+  stopGameLoop();
+  startMenuVideo();
+
+  // ✅ 1. Stats : Affiche les vrais scores
+  if (typeof updateMenuStats === "function") updateMenuStats();
+
+  // ✅ 2. Pubs : Reset journalier
+  if (typeof checkDailyAdReset === "function") checkDailyAdReset();
+
+  // ✅ 3. UI : Nettoyage popup
+  if (typeof hideMenuAdPopup === "function") hideMenuAdPopup();
+
+  // ✅ 4. Timer Popup (Sécurité Android)
+  setTimeout(() => {
+    // On vérifie qu'on est toujours sur le menu avant d'afficher
+    if (uiState === "menu" && typeof showMenuAdPopup === "function") {
+      showMenuAdPopup();
+    }
+  }, 900);
+}
 // ================= FX FLAGS =================
 let skipHeavyFX = false;
 
@@ -7425,20 +7870,20 @@ function updateShopDisplay(){
 
   if (isEquipped){
     // CAS : DÉJÀ ÉQUIPÉ
-    elPrice.textContent = "EQUIPPED";
+    elPrice.textContent = (typeof i18n !== "undefined" ? i18n.equipped : "EQUIPPED");
     elPrice.style.color = "#8aff8a";
     elPrice.classList.remove("price-paid");
     
-    btn.textContent = "SELECTED";
+    btn.textContent = (typeof i18n !== "undefined" ? i18n.selected : "SELECTED");
     btn.classList.add("equipped");
     
   } else if (isOwned){
     // CAS : ACHETÉ MAIS PAS ÉQUIPÉ
-    elPrice.textContent = "OWNED";
+    elPrice.textContent = (typeof i18n !== "undefined" ? i18n.owned : "OWNED");
     elPrice.style.color = "#a0c0ff";
     elPrice.classList.remove("price-paid");
 
-    btn.textContent = "EQUIP";
+    btn.textContent = (typeof i18n !== "undefined" ? i18n.equip : "EQUIP");
     btn.classList.add("owned");
     btn.onclick = () => { 
         Player.equip(skinId); 
@@ -7456,7 +7901,7 @@ function updateShopDisplay(){
 
     if (canAfford){
       // Peut acheter
-      btn.textContent = "UNLOCK";
+      btn.textContent = (typeof i18n !== "undefined" ? i18n.unlock : "UNLOCK");
       
       // 🔥 LE DÉCLENCHEUR D'ANIMATION EST ICI 🔥
       btn.onclick = () => { 
@@ -7489,7 +7934,7 @@ function updateShopDisplay(){
       
     } else {
       // ⚠️ NOUVEAU : Pas assez d'argent -> On force le joueur à utiliser la Roulette
-      btn.textContent = "NEED COINS";
+      btn.textContent = (typeof i18n !== "undefined" ? i18n.needCoins : "NEED COINS");
       btn.style.opacity = 0.5;
       btn.style.cursor = "not-allowed";
       btn.onclick = null;
@@ -7954,7 +8399,6 @@ async function scheduleFreeSpinNotification() {
         console.warn("Erreur Notification:", e);
     }
 }
-
 /* =========================================================
    🚀 DOM READY FINAL (ANTI-GHOST CLICK + STARTRUN SAFE)
 ========================================================= */
@@ -8029,10 +8473,17 @@ document.addEventListener("DOMContentLoaded", () => {
 
       // 5. CHANGEMENT D'ÉTAT UI
       // (Le setTimeout permet à l'animation CSS de se jouer)
-      setTimeout(() => {
-          setUIState("menu"); // Cela confirmera la musique
+      setTimeout(async () => {
           intro.style.display = "none";
           intro.style.pointerEvents = "none";
+
+          // 🏷️ PSEUDO POPUP — Au premier lancement, on demande le nom du pilote
+          // avant d'arriver au menu (meilleur UX que pendant le game over)
+          if (fbReady && !fbPseudo && !localStorage.getItem("fb_pseudo")) {
+              await askPseudo();
+          }
+
+          setUIState("menu");
           globalInputLock = false;
       }, 600);
 
@@ -8094,11 +8545,9 @@ if (btnPlay) {
   };
 
 bindBtn("optBack", () => setUIState("menu"));
-  bindBtn("menuBtn", () => goToMenu());
-  bindBtn("btnPrivacy", () => revokeConsent()); // AJOUTE CETTE LIGNE
-bindBtn("btnLeaderboard", () => {
-    if (!globalInputLock) showLeaderboard();
-});
+bindBtn("menuBtn", () => goToMenu());
+bindBtn("btnPrivacy", () => revokeConsent());
+bindBtn("btnLeaderboard", showLeaderboard);
   // =========================
   // 6️⃣ RESTART (ANTI-SPAM)
   // =========================
@@ -8236,93 +8685,230 @@ function hardRefreshCanvas() {
     }
 }
 /* =========================================================
-   📺 ADMOB MANAGER V8.1 (ATT SEULEMENT - INITIALISATION FORCÉE)
+   📺 APPODEAL MANAGER + 🏆 PLAY GAMES (REMPLACEMENT ADMOB)
 ========================================================= */
-const AdMob = window.Capacitor && window.Capacitor.Plugins.AdMob;
 
-const AD_IDS = {
-    interstitial: 'ca-app-pub-2409581870901167/2901010676', 
-    reward:       'ca-app-pub-2409581870901167/2170712506', 
-    isTesting:    false
-};
+// --- BRIDGE NATIF (injecté par MainActivity.java) ---
+const AppodealNative = window.AppodealBridge || null;
 
+// --- CONFIGURATION ---
+const LEADERBOARD_ID = "CgkI84HfzfEDEAIQAQ";
+
+// --- ÉTAT GLOBAL ---
 let canRequestAds = false;
-let rewardGranted = false; 
+let playGamesInitialized = false;
+window.wasAdJustClosed = false;
 
-const handleReward = (reward) => {
-    console.log("📬 AdMob : Signal de récompense reçu !");
-    rewardGranted = true; 
-};
+/* =========================================================
+   1. GESTION PLAY GAMES (Inchangé)
+========================================================= */
+let playGamesInitPromise = null;
+let isFlushingScores = false;
 
-async function initAds() {
-    if (!AdMob) return;
-    try {
-        console.log("AdMob: Démarrage de l'initialisation...");
+async function getPlayGamesPlugin() { return window.Capacitor && window.Capacitor.Plugins.PlayGames; }
 
-        // Initialisation forcée sans RGPD (ATT géré avant dans initAll)
-        await AdMob.initialize({ requestTrackingAuthorization: false });
-        console.log("AdMob: SDK Initialisé avec succès !");
+async function initPlayGames(forceRetry = false) {
+    if (playGamesInitialized && !forceRetry) return true;
+    if (playGamesInitPromise) return playGamesInitPromise;
 
-        canRequestAds = true;
-
-        await AdMob.prepareInterstitial({ adId: AD_IDS.interstitial, isTesting: AD_IDS.isTesting });
-        await AdMob.prepareRewardVideoAd({ adId: AD_IDS.reward, isTesting: AD_IDS.isTesting });
-
-        AdMob.addListener('onRewardedVideoAdReward', handleReward);
-
-        AdMob.addListener('onRewardedVideoAdDismissed', () => {
-            console.log("📺 AdMob : Fenêtre de pub fermée.");
-            setTimeout(() => {
-                if (rewardGranted) {
-                    console.log("✅ RÉCOMPENSE DISTRIBUÉE !");
-                    if (window.pendingRewardSuccess) window.pendingRewardSuccess();
-                } else {
-                    console.log("❌ Aucune récompense validée.");
-                    if (window.pendingRewardFail) window.pendingRewardFail();
-                }
-                rewardGranted = false;
-                window.pendingRewardSuccess = null;
-                window.pendingRewardFail = null;
-                if (typeof hardRefreshCanvas === 'function') hardRefreshCanvas();
-                if (canRequestAds) AdMob.prepareRewardVideoAd({ adId: AD_IDS.reward, isTesting: AD_IDS.isTesting });
-            }, 1200); 
-        });
-
-        AdMob.addListener('onInterstitialAdDismissed', () => {
-            console.log("📺 AdMob : Interstitiel fermé.");
-            if (typeof hardRefreshCanvas === 'function') hardRefreshCanvas();
-            if (canRequestAds) AdMob.prepareInterstitial({ adId: AD_IDS.interstitial, isTesting: AD_IDS.isTesting });
-        });
-
-    } catch (e) { console.warn("AdMob Init Fail:", e); }
+    playGamesInitPromise = (async () => {
+        try {
+            const PlayGames = await getPlayGamesPlugin();
+            if (!PlayGames) return false;
+            
+            console.log("🔄 Initialisation de Play Games...");
+            await PlayGames.login();
+            await new Promise(r => setTimeout(r, 1000));
+            
+            playGamesInitialized = true;
+            console.log("✅ Connecté à Google Play Games !");
+            flushPendingScores();
+            return true;
+        } catch (e) {
+            console.warn("❌ Erreur Play Games (Init) :", e);
+            playGamesInitialized = false;
+            playGamesInitPromise = null;
+            return false;
+        }
+    })();
+    return playGamesInitPromise;
 }
 
+async function ensurePlayGamesReady() {
+    const PlayGames = await getPlayGamesPlugin();
+    if (!PlayGames) return false;
+    if (playGamesInitialized) return true;
+    return await initPlayGames(true);
+}
+
+function getLastScoreSent() { return parseInt(localStorage.getItem("playGames_lastScoreSent")) || -1; }
+function setLastScoreSent(score) { localStorage.setItem("playGames_lastScoreSent", score.toString()); }
+
+function saveScoreOffline(score) {
+    let pending = JSON.parse(localStorage.getItem("playGames_pendingScores") || "[]");
+    if (!pending.includes(score) && score > getLastScoreSent()) {
+        pending.push(score);
+        localStorage.setItem("playGames_pendingScores", JSON.stringify(pending));
+    }
+}
+
+async function flushPendingScores() {
+    if (isFlushingScores) return;
+    isFlushingScores = true;
+    try {
+        let pending = JSON.parse(localStorage.getItem("playGames_pendingScores") || "[]");
+        if (pending.length === 0) return;
+        
+        let remaining = [];
+        for (const s of pending) {
+            const success = await sendScoreNetworkRequest(s);
+            if (!success) remaining.push(s);
+        }
+        if (remaining.length > 0) localStorage.setItem("playGames_pendingScores", JSON.stringify(remaining));
+        else localStorage.removeItem("playGames_pendingScores");
+    } catch (e) {
+        console.warn("⚠️ Erreur inattendue pendant le flush :", e);
+    } finally {
+        isFlushingScores = false; 
+    }
+}
+
+async function sendScoreNetworkRequest(score) {
+    try {
+        const ready = await ensurePlayGamesReady();
+        if (!ready) return false;
+        const PlayGames = await getPlayGamesPlugin();
+        await Promise.race([
+            PlayGames.submitScore({ id: LEADERBOARD_ID, score: score }),
+            new Promise((_, reject) => setTimeout(() => reject(new Error("Timeout API")), 2500))
+        ]);
+        setLastScoreSent(score);
+        return true;
+    } catch (e) {
+        return false;
+    }
+}
+
+async function showLeaderboard() {
+    try {
+        const ready = await ensurePlayGamesReady();
+        if (!ready) return;
+        const PlayGames = await getPlayGamesPlugin();
+        if (window.wasAdJustClosed) {
+            await new Promise(r => setTimeout(r, 800));
+            window.wasAdJustClosed = false;
+        } else {
+            await new Promise(r => setTimeout(r, 100)); 
+        }
+        await PlayGames.showLeaderboard({ id: LEADERBOARD_ID });
+    } catch (e) {
+        console.warn("❌ Erreur Leaderboard :", e);
+    }
+}
+
+/* =========================================================
+   2. GESTION APPODEAL (REMPLACE ADMOB)
+========================================================= */
+
+async function initAds() {
+    if (!AppodealNative) {
+        console.log("Appodeal: Mode Web (Pas de pubs)");
+        return;
+    }
+
+    try {
+        console.log("Appodeal: Initialisation via bridge natif...");
+        AppodealNative.initAds();
+        canRequestAds = true;
+        console.log("✅ Appodeal: Demande d'init envoyée !");
+    } catch (e) {
+        console.warn("Appodeal Init Fail:", e);
+    }
+}
+
+// Écoute les events du bridge natif
+window.addEventListener('onAdsInitialized', () => {
+    console.log("✅ Appodeal: SDK initialisé (callback natif)");
+    canRequestAds = true;
+});
+
+window.addEventListener('onInterstitialClosed', () => {
+    window.wasAdJustClosed = true;
+    if (typeof hardRefreshCanvas === "function") hardRefreshCanvas();
+});
+
+window.addEventListener('onAdClosed', () => {
+    window.wasAdJustClosed = true;
+    if (typeof hardRefreshCanvas === "function") hardRefreshCanvas();
+});
+
 async function showGameOverAd() {
-    if (!AdMob || !canRequestAds) return;
-    try { await AdMob.showInterstitial(); } 
-    catch (e) { if (canRequestAds) AdMob.prepareInterstitial({ adId: AD_IDS.interstitial, isTesting: AD_IDS.isTesting }); }
+    if (!AppodealNative || !canRequestAds) return;
+    try { 
+        AppodealNative.showInterstitial(); 
+    } catch (e) {
+        console.warn("Appodeal: Erreur showInterstitial:", e);
+    }
 }
 
 async function showRewardedAd(onSuccess, onFail) {
-    if (!AdMob) { if(onSuccess) onSuccess(); return; }
-    if (!canRequestAds) { if(onFail) onFail(); return; }
+    if (!AppodealNative) { 
+        if (onSuccess) onSuccess(); 
+        return; 
+    }
+    if (!canRequestAds) { 
+        if (onFail) onFail(); 
+        return; 
+    }
+
+    window._rewardSuccess = onSuccess || null;
+    window._rewardFail = onFail || null;
+
     try {
-        rewardGranted = false; 
-        window.pendingRewardSuccess = onSuccess;
-        window.pendingRewardFail = onFail; 
-        await AdMob.showRewardVideoAd();
+        AppodealNative.showRewarded();
     } catch (e) {
-        if(onFail) onFail();
-        window.pendingRewardSuccess = null;
-        window.pendingRewardFail = null;
-        if (canRequestAds) AdMob.prepareRewardVideoAd({ adId: AD_IDS.reward, isTesting: AD_IDS.isTesting });
+        if (onFail) onFail();
     }
 }
-window.isAdSystemReady = function() { return canRequestAds; };
+
+window.addEventListener('onRewardEarned', () => {
+    console.log("✅ Récompense gagnée !");
+    if (window._rewardSuccess) {
+        window._rewardSuccess();
+        window._rewardSuccess = null;
+        window._rewardFail = null;
+    }
+});
+
+window.addEventListener('onRewardedFailed', () => {
+    console.warn("❌ Rewarded échouée ou pas terminée");
+    if (window._rewardFail) {
+        window._rewardFail();
+        window._rewardSuccess = null;
+        window._rewardFail = null;
+    }
+});
+
+async function revokeConsent() {
+    console.log("Appodeal: Le consentement est géré automatiquement par le SDK.");
+}
+
+window.isAdSystemReady = function () { return canRequestAds; };
 
 /* =========================================================
-   🍏 APPLE TRACKING TRANSPARENCY (ATT)
+   3. LANCEMENT GLOBAL (BOOTSTRAPPER SÉQUENTIEL)
+   — Compatible Android (Play Games) + iOS (ATT + Game Center)
 ========================================================= */
+
+// Détection plateforme
+function isIOSNative() {
+    try {
+        const info = window.Capacitor && window.Capacitor.getPlatform && window.Capacitor.getPlatform();
+        return info === 'ios';
+    } catch(e) { return /iPhone|iPad|iPod/i.test(navigator.userAgent); }
+}
+
+// ATT — App Tracking Transparency (iOS uniquement, plugin Capacitor)
 async function requestATT() {
     if (!window.Capacitor || !window.Capacitor.Plugins.AppTrackingTransparency) return;
     try {
@@ -8336,9 +8922,7 @@ async function requestATT() {
     } catch(e) { console.warn("⚠️ Erreur ATT :", e); }
 }
 
-/* =========================================================
-   📊 FIREBASE ANALYTICS
-========================================================= */
+// Firebase Analytics natif (iOS — plugin Capacitor, optionnel)
 async function initNativeAnalytics() {
     const FirebaseAnalytics = window.Capacitor && window.Capacitor.Plugins.FirebaseAnalytics;
     if (!FirebaseAnalytics) return;
@@ -8348,51 +8932,982 @@ async function initNativeAnalytics() {
     } catch (e) { console.warn("Erreur Analytics Natif:", e); }
 }
 
-/* =========================================================
-   🍏 APPLE GAME CENTER (NOUVEAU PLUGIN)
-========================================================= */
-const AppleGameCenter = window.Capacitor && window.Capacitor.Plugins.AppleGameCenter;
-
-async function initGameCenter() {
-    if (!AppleGameCenter) return;
+async function bootGame() {
     try {
-        await AppleGameCenter.signIn();
-        console.log("🍏 Connecté à Apple Game Center !");
-    } catch (e) { console.warn("⚠️ Connexion Game Center échouée :", e); }
+        if (!window.Capacitor) return;
+
+        const isNative = typeof window.Capacitor.isNativePlatform === 'function'
+            ? window.Capacitor.isNativePlatform()
+            : window.Capacitor.isNativePlatform;
+
+        if (!isNative) {
+            initAds();
+            return;
+        }
+
+        console.log("📱 Mode natif détecté.");
+
+        if (isIOSNative()) {
+            // iOS : ATT d'abord (bloquant), puis Appodeal, puis analytics
+            console.log("🍎 Plateforme iOS détectée.");
+            await requestATT();
+            await initAds();
+            initNativeAnalytics();
+        } else {
+            // Android : Play Games puis Appodeal
+            console.log("🤖 Plateforme Android détectée.");
+            await initPlayGames();
+            await initAds();
+        }
+
+    } catch (e) {
+        console.warn("❌ Erreur bootGame :", e);
+    }
 }
 
-async function showLeaderboard() {
-    if (!AppleGameCenter) {
-        console.warn("AppleGameCenter non disponible.");
+// Lancement sécurisé
+if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", bootGame);
+} else {
+    bootGame();
+}
+
+/* =========================================================
+   🏆🔥 FIREBASE LEADERBOARD SYSTEM — GALAXY RUSH
+   ─────────────────────────────────────────────────
+   • Auth anonyme (UID auto)
+   • Pseudo au 1er lancement (stocké localStorage + Firestore)
+   • Score : on n'update que si nouveau record
+   • Affichage : Top 10 + zone du joueur (±5)
+========================================================= */
+
+// ──────────────────────────────────────────────
+// 🔧 FIREBASE CONFIG (À REMPLACER PAR LA TIENNE)
+// ──────────────────────────────────────────────
+const FIREBASE_CONFIG = {
+    apiKey:            "AIzaSyAMdex8DfWS5tspB7daDUMQH4eWTdr9AwI",
+    authDomain:        "galaxy-rush-9e34e.firebaseapp.com",
+    projectId:         "galaxy-rush-9e34e",
+    storageBucket:     "galaxy-rush-9e34e.firebasestorage.app",
+    messagingSenderId: "133575459059",
+    appId:             "1:133575459059:web:34b7a35cefb4fd33b73786",
+    measurementId:     "G-8QKV6KV1B0"
+};
+
+// ──────────────────────────────────────────────
+// 🏗️ INIT FIREBASE
+// ──────────────────────────────────────────────
+let fbApp = null, fbDb = null, fbAuth = null;
+let fbUserId = null;
+let fbPseudo = null;
+let fbReady = false;
+
+async function initFirebase() {
+    try {
+        if (!window.firebase) {
+            console.warn("🔥 Firebase SDK non chargé.");
+            return false;
+        }
+
+        // Éviter la double-init
+        if (!firebase.apps.length) {
+            fbApp = firebase.initializeApp(FIREBASE_CONFIG);
+        } else {
+            fbApp = firebase.apps[0];
+        }
+
+        fbDb   = firebase.firestore();
+        fbAuth = firebase.auth();
+
+        // Persistance offline (cache local — scores envoyés auto quand réseau revient)
+        try {
+            await fbDb.enablePersistence({ synchronizeTabs: false });
+            console.log("🔥 Firestore: Persistance offline activée");
+        } catch (e) {
+            // Pas grave si ça échoue (WebView ancienne, multi-tab, etc.)
+            console.log("🔥 Firestore: Persistance offline non dispo:", e.code);
+        }
+
+        // Auth anonyme
+        const cred = await fbAuth.signInAnonymously();
+        fbUserId = cred.user.uid;
+        console.log("🔥 Firebase OK — UID:", fbUserId);
+
+        // Récupérer le pseudo local
+        fbPseudo = localStorage.getItem("fb_pseudo") || null;
+
+        // Si on a un pseudo local, vérifier qu'il est cohérent avec Firestore
+        if (fbPseudo) {
+            try {
+                const doc = await fbDb.collection("leaderboard").doc(fbUserId).get();
+                if (doc.exists && doc.data().pseudo) {
+                    fbPseudo = doc.data().pseudo;
+                    localStorage.setItem("fb_pseudo", fbPseudo);
+                }
+            } catch(e) { /* ignore, on garde le local */ }
+        }
+
+        fbReady = true;
+        return true;
+    } catch (e) {
+        console.warn("🔥 Firebase init fail:", e);
+        return false;
+    }
+}
+
+// ──────────────────────────────────────────────
+// 🏷️ PSEUDO POPUP
+// ──────────────────────────────────────────────
+let pseudoResolve = null;
+
+function askPseudo() {
+    return new Promise((resolve) => {
+        pseudoResolve = resolve;
+        const popup = document.getElementById("pseudoPopup");
+        const input = document.getElementById("pseudoInput");
+        const err   = document.getElementById("pseudoError");
+
+        if (err) err.textContent = "";
+        if (input) { input.value = ""; input.focus(); }
+        if (popup) popup.classList.add("visible");
+
+        // Enter key
+        if (input) {
+            input.onkeydown = (e) => {
+                if (e.key === "Enter") confirmPseudo();
+            };
+        }
+    });
+}
+
+async function confirmPseudo() {
+    const input = document.getElementById("pseudoInput");
+    const err   = document.getElementById("pseudoError");
+    const btn   = document.getElementById("pseudoConfirmBtn");
+
+    if (!input) return;
+
+    const raw = input.value.trim();
+
+    // Validation
+    if (raw.length < 2) {
+        if (err) err.textContent = (typeof i18n !== "undefined" ? i18n.pseudoMin : "MIN 2 CHARACTERS");
         return;
     }
-    try {
-        console.log("🍏 Ouverture du Leaderboard Game Center...");
-        await AppleGameCenter.showLeaderboard({ leaderboardId: "galaxyrush.bestscore" });
-    } catch (e) { console.error("Erreur lors de l'ouverture du Leaderboard :", e); }
-}
-
-/* =========================================================
-   🚀 MASTER INIT (SÉQUENCE DE DÉMARRAGE SÉCURISÉE)
-========================================================= */
-async function initAll() {
-    console.log("⚙️ Démarrage de la séquence système natif...");
-    
-    if (!window.Capacitor) {
-        console.log("🌐 Mode Navigateur Web détecté (Pas de plugins natifs).");
+    if (raw.length > 16) {
+        if (err) err.textContent = (typeof i18n !== "undefined" ? i18n.pseudoMax : "MAX 16 CHARACTERS");
+        return;
+    }
+    if (!/^[a-zA-Z0-9_\- À-ÿ]+$/.test(raw)) {
+        if (err) err.textContent = (typeof i18n !== "undefined" ? i18n.pseudoChars : "LETTERS, NUMBERS, - _ ONLY");
         return;
     }
 
-    await requestATT();       // 1. ATT EN PREMIER (Bloquant)
-    await initAds();          // 2. AdMob ensuite
-    initNativeAnalytics();    // 3. Analytics
-    initGameCenter();         // 4. Game Center
+    // Disable button pendant l'envoi
+    if (btn) btn.disabled = true;
+    if (err) err.textContent = "";
+
+    fbPseudo = raw;
+    localStorage.setItem("fb_pseudo", fbPseudo);
+
+    // Créer le document Firestore si inexistant
+    try {
+        if (fbDb && fbUserId) {
+            await fbDb.collection("leaderboard").doc(fbUserId).set({
+                pseudo: fbPseudo,
+                score: Number(localStorage.getItem("bestScore") || 0),
+                date: firebase.firestore.FieldValue.serverTimestamp()
+            }, { merge: true });
+        }
+    } catch (e) {
+        console.warn("🔥 Firestore set pseudo fail:", e);
+    }
+
+    // Fermer la popup
+    const popup = document.getElementById("pseudoPopup");
+    if (popup) popup.classList.remove("visible");
+    if (btn) btn.disabled = false;
+
+    if (pseudoResolve) {
+        pseudoResolve(fbPseudo);
+        pseudoResolve = null;
+    }
 }
 
-// 🎯 DÉCLENCHEUR UNIQUE
-document.addEventListener("DOMContentLoaded", () => {
-    initAll();
-});
+// ──────────────────────────────────────────────
+// 📤 ENVOYER LE SCORE À FIRESTORE
+// ──────────────────────────────────────────────
+async function fbSubmitScore(newScore) {
+    if (!fbReady || !fbUserId) return;
+
+    // Si pas de pseudo, on skip silencieusement (il sera demandé au prochain lancement)
+    // On ne veut PAS interrompre le game over avec une popup
+    if (!fbPseudo) {
+        console.log("🔥 Firestore: Pas de pseudo, score non envoyé (sera demandé au prochain lancement)");
+        return;
+    }
+
+    try {
+        const docRef = fbDb.collection("leaderboard").doc(fbUserId);
+        const doc = await docRef.get();
+
+        if (doc.exists) {
+            const currentBest = doc.data().score || 0;
+            if (newScore > currentBest) {
+                await docRef.update({
+                    score: newScore,
+                    pseudo: fbPseudo,
+                    date: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                console.log("🔥 Firestore: Score mis à jour →", newScore);
+            }
+        } else {
+            // Premier score
+            await docRef.set({
+                pseudo: fbPseudo,
+                score: newScore,
+                date: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            console.log("🔥 Firestore: Premier score enregistré →", newScore);
+        }
+    } catch (e) {
+        console.warn("🔥 Firestore submit fail:", e);
+    }
+}
+
+// ──────────────────────────────────────────────
+// 📊 AFFICHER LE LEADERBOARD
+// ──────────────────────────────────────────────
+const LB_MEDALS = { 1: "🥇", 2: "🥈", 3: "🥉" };
+
+function buildLBRow(rank, pseudo, score, isMe) {
+    const medal = LB_MEDALS[rank] || "";
+    const rankClass = rank <= 3 ? ` rank-${rank}` : "";
+    const meClass = isMe ? " lb-me" : "";
+
+    return `
+        <div class="lb-row${rankClass}${meClass}">
+            <div class="lb-rank">${rank}</div>
+            <div class="lb-medal">${medal}</div>
+            <div class="lb-name">${escLB(pseudo)}</div>
+            <div class="lb-score">${score.toLocaleString()}</div>
+        </div>
+    `;
+}
+
+function escLB(str) {
+    const d = document.createElement("div");
+    d.textContent = str;
+    return d.innerHTML;
+}
+
+async function openLB() {
+    const overlay = document.getElementById("lbOverlay");
+    const list    = document.getElementById("lbList");
+    const footer  = document.getElementById("lbFooterInfo");
+
+    if (!overlay || !list) return;
+
+    // Show overlay with loading
+    const _t = (typeof i18n !== "undefined") ? i18n : {};
+    list.innerHTML = '<div class="lb-loading">' + (_t.lbLoading || "LOADING RANKINGS...") + '</div>';
+    if (footer) footer.textContent = "";
+    overlay.classList.add("visible");
+
+    // Firebase pas prêt ?
+    if (!fbReady) {
+        const ok = await initFirebase();
+        if (!ok) {
+            list.innerHTML = '<div class="lb-loading" style="color:#ff4444;">' + (_t.lbConnFail || "CONNECTION FAILED") + '</div>';
+            return;
+        }
+    }
+
+    try {
+        // 1. Récupérer le Top 10
+        const topSnap = await fbDb.collection("leaderboard")
+            .orderBy("score", "desc")
+            .limit(10)
+            .get();
+
+        const topPlayers = [];
+        let myRankInTop = -1;
+
+        topSnap.forEach((doc, i) => {
+            const d = doc.data();
+            topPlayers.push({
+                uid: doc.id,
+                pseudo: d.pseudo || "???",
+                score: d.score || 0
+            });
+        });
+
+        // Assigner les rangs
+        topPlayers.forEach((p, i) => {
+            p.rank = i + 1;
+            if (p.uid === fbUserId) myRankInTop = i + 1;
+        });
+
+        // 2. Construire le HTML du Top 10
+        let html = "";
+        topPlayers.forEach(p => {
+            html += buildLBRow(p.rank, p.pseudo, p.score, p.uid === fbUserId);
+        });
+
+        // 3. Si le joueur n'est PAS dans le top 10, trouver sa position
+        if (myRankInTop === -1 && fbUserId) {
+            // Récupérer le score du joueur
+            const myDoc = await fbDb.collection("leaderboard").doc(fbUserId).get();
+
+            if (myDoc.exists) {
+                const myScore = myDoc.data().score || 0;
+                const myPseudo = myDoc.data().pseudo || fbPseudo || "???";
+
+                // Compter combien de joueurs ont un score supérieur = mon rang
+                // Utilise count() au lieu de get() — ne télécharge PAS les documents,
+                // juste le nombre. Beaucoup moins cher en reads Firebase.
+                let myRank;
+                try {
+                    const countSnap = await fbDb.collection("leaderboard")
+                        .where("score", ">", myScore)
+                        .count()
+                        .get();
+                    myRank = countSnap.data().count + 1;
+                } catch (e) {
+                    // Fallback si count() pas supporté (vieille version SDK)
+                    const aboveSnap = await fbDb.collection("leaderboard")
+                        .where("score", ">", myScore)
+                        .get();
+                    myRank = aboveSnap.size + 1;
+                }
+
+                // Récupérer les ~5 joueurs au-dessus de moi
+                const aboveMe = await fbDb.collection("leaderboard")
+                    .orderBy("score", "asc")
+                    .where("score", ">", myScore)
+                    .limit(5)
+                    .get();
+
+                const aboveList = [];
+                aboveMe.forEach(doc => {
+                    const d = doc.data();
+                    aboveList.push({
+                        uid: doc.id,
+                        pseudo: d.pseudo || "???",
+                        score: d.score || 0
+                    });
+                });
+                aboveList.reverse(); // Plus haut score en premier
+
+                // Récupérer les ~5 joueurs en-dessous de moi
+                const belowMe = await fbDb.collection("leaderboard")
+                    .orderBy("score", "desc")
+                    .where("score", "<", myScore)
+                    .limit(5)
+                    .get();
+
+                const belowList = [];
+                belowMe.forEach(doc => {
+                    const d = doc.data();
+                    belowList.push({
+                        uid: doc.id,
+                        pseudo: d.pseudo || "???",
+                        score: d.score || 0
+                    });
+                });
+
+                // Ajouter le séparateur + la zone du joueur
+                html += '<div class="lb-separator">' + (_t.lbYourZone || "• • YOUR ZONE • •") + '</div>';
+
+                // Joueurs au-dessus
+                aboveList.forEach((p, i) => {
+                    const r = myRank - (aboveList.length - i);
+                    html += buildLBRow(r, p.pseudo, p.score, false);
+                });
+
+                // MOI
+                html += buildLBRow(myRank, myPseudo, myScore, true);
+
+                // Joueurs en-dessous
+                belowList.forEach((p, i) => {
+                    html += buildLBRow(myRank + 1 + i, p.pseudo, p.score, false);
+                });
+
+                if (footer) footer.textContent = (_t.lbYourRank || "YOUR RANK:") + ` #${myRank}`;
+            } else {
+                if (footer) footer.textContent = (_t.lbPlayFirst || "PLAY A GAME TO APPEAR HERE");
+            }
+        } else if (myRankInTop > 0) {
+            if (footer) footer.textContent = (_t.lbYourRank || "YOUR RANK:") + ` #${myRankInTop}`;
+        }
+
+        // Si aucun joueur du tout
+        if (topPlayers.length === 0) {
+            html = '<div class="lb-loading" style="color:#5a7a9a;">' + (_t.lbNoPlayers || "NO PLAYERS YET — BE THE FIRST!") + '</div>';
+        }
+
+        list.innerHTML = html;
+
+    } catch (e) {
+        console.warn("🔥 Leaderboard fetch fail:", e);
+        list.innerHTML = '<div class="lb-loading" style="color:#ff4444;">' + (_t.lbErrLoad || "ERROR LOADING DATA") + '</div>';
+    }
+}
+
+function closeLB() {
+    const overlay = document.getElementById("lbOverlay");
+    if (overlay) overlay.classList.remove("visible");
+}
+
+// ──────────────────────────────────────────────
+// 🔄 REWIRE showLeaderboard() — Remplace Play Games
+// ──────────────────────────────────────────────
+// On écrase l'ancienne fonction
+const _originalShowLeaderboard = typeof showLeaderboard === "function" ? showLeaderboard : null;
+
+window.showLeaderboard = async function() {
+    // Firebase disponible → overlay custom
+    if (fbReady || (window.firebase && firebase.apps)) {
+        openLB();
+        return;
+    }
+
+    // Fallback Play Games (natif Android) si Firebase pas dispo
+    if (_originalShowLeaderboard) {
+        try {
+            await _originalShowLeaderboard();
+        } catch(e) {
+            // Si Play Games échoue aussi, tenter Firebase quand même
+            openLB();
+        }
+    } else {
+        openLB();
+    }
+};
+
+// ──────────────────────────────────────────────
+// 🔄 REWIRE finalizeAbsoluteGameOver() — Firebase + Interstitielle toutes les 4 parties
+// ──────────────────────────────────────────────
+const _originalFinalizeGameOver = typeof finalizeAbsoluteGameOver === "function" 
+    ? finalizeAbsoluteGameOver : null;
+
+// Compteur de parties (persistant entre sessions)
+let _gameCount = parseInt(localStorage.getItem("gr_gameCount") || "0");
+const INTERSTITIAL_EVERY = 4;
+
+// Flag : le joueur vient-il de regarder un revive ad ?
+let _justWatchedRevive = false;
+
+window.finalizeAbsoluteGameOver = function(finalScore) {
+    // 1. Appeler l'original (Play Games + affichage)
+    if (_originalFinalizeGameOver) {
+        _originalFinalizeGameOver(finalScore);
+    }
+
+    // 2. Envoyer à Firebase (async, non-bloquant)
+    if (fbReady && finalScore > 0) {
+        fbSubmitScore(finalScore).catch(e => {
+            console.warn("🔥 Firebase score submit error:", e);
+        });
+    }
+
+    // 3. Interstitielle toutes les 4 parties
+    _gameCount++;
+    localStorage.setItem("gr_gameCount", _gameCount.toString());
+
+    if (_gameCount % INTERSTITIAL_EVERY === 0) {
+        if (_justWatchedRevive) {
+            // Le joueur vient de regarder une rewarded → on lui épargne l'interstitielle
+            console.log("📺 Interstitielle skippée (revive ad déjà vue)");
+        } else {
+            // Petit délai pour laisser l'écran game over s'afficher
+            setTimeout(() => {
+                if (typeof showGameOverAd === "function") {
+                    showGameOverAd();
+                }
+            }, 800);
+        }
+    }
+
+    // Reset le flag revive pour la prochaine partie
+    _justWatchedRevive = false;
+};
+
+// ──────────────────────────────────────────────
+// 🚀 BOOT FIREBASE (au chargement de la page)
+// ──────────────────────────────────────────────
+(async function bootFirebase() {
+    // Petit délai pour ne pas bloquer le chargement du jeu
+    await new Promise(r => setTimeout(r, 1500));
+    await initFirebase();
+})();
+
+/* =========================================================
+   🌍 SYSTÈME i18n — TRADUCTION MULTI-LANGUES GALAXY RUSH
+   ─────────────────────────────────────────────────────────
+   • 13 langues supportées
+   • Détection auto via navigator.language
+   • Fallback anglais
+   • Couvre HTML statique + textes dynamiques JS
+========================================================= */
+
+const LANGS = {
+    en: {
+        tapToStart: "TAP TO START", systemBoot: "SYSTEM BOOT", initializing: "INITIALIZING...",
+        play: "PLAY", topPlayers: "TOP PLAYERS", skinShop: "SKIN SHOP", settings: "SETTINGS",
+        spin: "🎰 SPIN", privacy: "🛡️ PRIVACY & ADS", lblBest: "BEST", lblCoins: "COINS",
+        shopBack: "← BACK", luckySpin: "LUCKY SPIN", optTitle: "SETTINGS",
+        optMusic: "🎵 Music", optEffects: "🔊 Effects", optMute: "🔇 Mute", optBack: "BACK",
+        boost: "BOOST",
+        reviveHeader: "⚠️ SYSTEM FAILURE ⚠️", reviveSub: "WATCH AD STREAM TO REBOOT SYSTEM?",
+        reviveBtn: '<span class="btn-glitch"></span><span class="btn-txt">📺 WATCH AD & REVIVE</span>',
+        skip: "SKIP", leave: "LEAVE",
+        newRecord: "NEW RECORD !", rankChanged: "🏆 YOUR RANK CHANGED — SEE WHERE YOU ARE!",
+        gameOver: "Game Over !", statScore: "⚡ SCORE", statBest: "🏆 BEST", statCoins: "🪙 COIN",
+        playAgain: "Play Again", mainMenu: "Main Menu",
+        multiplyBtn: '<span>💎 MULTIPLY COINS</span><span style="font-size:11px; opacity:0.8; font-weight:400; margin-top:2px;">( WATCH VIDEO TO SPIN )</span>',
+        multiResult: "READY?",
+        lbTitle: "🏆 TOP PLAYERS", lbSub: "GALAXY RUSH GLOBAL RANKINGS",
+        lbLoading: "LOADING RANKINGS...", lbConnFail: "CONNECTION FAILED",
+        lbNoPlayers: "NO PLAYERS YET — BE THE FIRST!", lbErrLoad: "ERROR LOADING DATA",
+        lbYourZone: "• • YOUR ZONE • •", lbYourRank: "YOUR RANK:", lbPlayFirst: "PLAY A GAME TO APPEAR HERE",
+        pseudoTitle: "PILOT ID", pseudoSub: "CHOOSE YOUR CALLSIGN FOR THE LEADERBOARD",
+        pseudoInput: "YOUR NAME...", pseudoConfirm: "CONFIRM",
+        pseudoMin: "MIN 2 CHARACTERS", pseudoMax: "MAX 16 CHARACTERS", pseudoChars: "LETTERS, NUMBERS, - _ ONLY",
+        freeSpin: "FREE SPIN 🎁", freeSpinReady: "FREE SPIN READY!",
+        spinLeft: "📺 WATCH AD TO SPIN (${n})", spinsLeft: "${n} FREE AD SPINS LEFT",
+        comeBack: "COME BACK IN ${t}", resetIn: "RESET IN: ${t}", noMoreSpins: "NO MORE SPINS TODAY!",
+        equipped: "EQUIPPED", selected: "SELECTED", owned: "OWNED",
+        equip: "EQUIP", unlock: "UNLOCK", needCoins: "NEED COINS",
+        ready: "READY?", tapStart: "TAP TO START"
+    },
+    fr: {
+        tapToStart: "TOUCHER POUR JOUER", systemBoot: "DÉMARRAGE", initializing: "INITIALISATION...",
+        play: "JOUER", topPlayers: "CLASSEMENT", skinShop: "BOUTIQUE", settings: "PARAMÈTRES",
+        spin: "🎰 TOURNER", privacy: "🛡️ CONFIDENTIALITÉ", lblBest: "RECORD", lblCoins: "PIÈCES",
+        shopBack: "← RETOUR", luckySpin: "TIRAGE", optTitle: "PARAMÈTRES",
+        optMusic: "🎵 Musique", optEffects: "🔊 Effets", optMute: "🔇 Muet", optBack: "RETOUR",
+        boost: "BOOST",
+        reviveHeader: "⚠️ DÉFAILLANCE ⚠️", reviveSub: "REGARDER UNE PUB POUR REDÉMARRER ?",
+        reviveBtn: '<span class="btn-glitch"></span><span class="btn-txt">📺 PUB POUR REVIVRE</span>',
+        skip: "PASSER", leave: "QUITTER",
+        newRecord: "NOUVEAU RECORD !", rankChanged: "🏆 TON RANG A CHANGÉ — REGARDE !",
+        gameOver: "Terminé !", statScore: "⚡ SCORE", statBest: "🏆 RECORD", statCoins: "🪙 PIÈCES",
+        playAgain: "Rejouer", mainMenu: "Menu Principal",
+        multiplyBtn: '<span>💎 MULTIPLIER LES PIÈCES</span><span style="font-size:11px; opacity:0.8; font-weight:400; margin-top:2px;">( PUB POUR TOURNER )</span>',
+        multiResult: "PRÊT ?",
+        lbTitle: "🏆 MEILLEURS PILOTES", lbSub: "CLASSEMENT MONDIAL GALAXY RUSH",
+        lbLoading: "CHARGEMENT...", lbConnFail: "CONNEXION ÉCHOUÉE",
+        lbNoPlayers: "AUCUN JOUEUR — SOIS LE PREMIER !", lbErrLoad: "ERREUR DE CHARGEMENT",
+        lbYourZone: "• • TA ZONE • •", lbYourRank: "TON RANG :", lbPlayFirst: "JOUE UNE PARTIE POUR APPARAÎTRE",
+        pseudoTitle: "ID PILOTE", pseudoSub: "CHOISIS TON NOM POUR LE CLASSEMENT",
+        pseudoInput: "TON NOM...", pseudoConfirm: "CONFIRMER",
+        pseudoMin: "MIN 2 CARACTÈRES", pseudoMax: "MAX 16 CARACTÈRES", pseudoChars: "LETTRES, CHIFFRES, - _ UNIQUEMENT",
+        freeSpin: "TOUR GRATUIT 🎁", freeSpinReady: "TOUR GRATUIT PRÊT !",
+        spinLeft: "📺 PUB = TOUR GRATUIT (${n})", spinsLeft: "${n} TOURS GRATUITS RESTANTS",
+        comeBack: "REVIENS DANS ${t}", resetIn: "RESET : ${t}", noMoreSpins: "PLUS DE TOURS AUJOURD'HUI !",
+        equipped: "ÉQUIPÉ", selected: "SÉLECTIONNÉ", owned: "POSSÉDÉ",
+        equip: "ÉQUIPER", unlock: "DÉBLOQUER", needCoins: "PAS ASSEZ",
+        ready: "PRÊT ?", tapStart: "TOUCHER POUR JOUER"
+    },
+    es: {
+        tapToStart: "TOCA PARA JUGAR", systemBoot: "INICIANDO", initializing: "CARGANDO...",
+        play: "JUGAR", topPlayers: "CLASIFICACIÓN", skinShop: "TIENDA", settings: "AJUSTES",
+        spin: "🎰 GIRAR", privacy: "🛡️ PRIVACIDAD", lblBest: "RÉCORD", lblCoins: "MONEDAS",
+        shopBack: "← VOLVER", luckySpin: "TIRADA", optTitle: "AJUSTES",
+        optMusic: "🎵 Música", optEffects: "🔊 Efectos", optMute: "🔇 Silencio", optBack: "VOLVER",
+        boost: "BOOST", reviveHeader: "⚠️ FALLO DEL SISTEMA ⚠️", reviveSub: "¿VER ANUNCIO PARA REINICIAR?",
+        reviveBtn: '<span class="btn-glitch"></span><span class="btn-txt">📺 VER AD Y REVIVIR</span>',
+        skip: "SALTAR", leave: "SALIR", newRecord: "¡NUEVO RÉCORD!", rankChanged: "🏆 TU RANGO CAMBIÓ — ¡MÍRALO!",
+        gameOver: "¡Fin del juego!", statScore: "⚡ PUNTOS", statBest: "🏆 RÉCORD", statCoins: "🪙 MONEDAS",
+        playAgain: "Jugar de nuevo", mainMenu: "Menú Principal",
+        multiplyBtn: '<span>💎 MULTIPLICAR MONEDAS</span><span style="font-size:11px; opacity:0.8; font-weight:400; margin-top:2px;">( VER AD PARA GIRAR )</span>',
+        multiResult: "¿LISTO?", lbTitle: "🏆 MEJORES PILOTOS", lbSub: "CLASIFICACIÓN MUNDIAL GALAXY RUSH",
+        lbLoading: "CARGANDO...", lbConnFail: "CONEXIÓN FALLIDA", lbNoPlayers: "¡SIN JUGADORES — SÉ EL PRIMERO!",
+        lbErrLoad: "ERROR AL CARGAR", lbYourZone: "• • TU ZONA • •", lbYourRank: "TU RANGO:", lbPlayFirst: "JUEGA PARA APARECER",
+        pseudoTitle: "ID DE PILOTO", pseudoSub: "ELIGE TU NOMBRE PARA EL RANKING",
+        pseudoInput: "TU NOMBRE...", pseudoConfirm: "CONFIRMAR",
+        pseudoMin: "MÍN 2 CARACTERES", pseudoMax: "MÁX 16 CARACTERES", pseudoChars: "LETRAS, NÚMEROS, - _ SOLO",
+        freeSpin: "GIRO GRATIS 🎁", freeSpinReady: "¡GIRO GRATIS LISTO!",
+        spinLeft: "📺 VER AD Y GIRAR (${n})", spinsLeft: "${n} GIROS GRATIS RESTANTES",
+        comeBack: "VUELVE EN ${t}", resetIn: "RESET: ${t}", noMoreSpins: "¡SIN GIROS HOY!",
+        equipped: "EQUIPADO", selected: "SELECCIONADO", owned: "OBTENIDO",
+        equip: "EQUIPAR", unlock: "DESBLOQUEAR", needCoins: "FALTAN MONEDAS",
+        ready: "¿LISTO?", tapStart: "TOCA PARA JUGAR"
+    },
+    it: {
+        tapToStart: "TOCCA PER INIZIARE", systemBoot: "AVVIO", initializing: "CARICAMENTO...",
+        play: "GIOCA", topPlayers: "CLASSIFICA", skinShop: "NEGOZIO", settings: "IMPOSTAZIONI",
+        spin: "🎰 GIRA", privacy: "🛡️ PRIVACY", lblBest: "RECORD", lblCoins: "MONETE",
+        shopBack: "← INDIETRO", luckySpin: "GIRA", optTitle: "IMPOSTAZIONI",
+        optMusic: "🎵 Musica", optEffects: "🔊 Effetti", optMute: "🔇 Muto", optBack: "INDIETRO",
+        boost: "BOOST", reviveHeader: "⚠️ ERRORE DI SISTEMA ⚠️", reviveSub: "GUARDA UN AD PER RIAVVIARE?",
+        reviveBtn: '<span class="btn-glitch"></span><span class="btn-txt">📺 GUARDA AD E RIVIVI</span>',
+        skip: "SALTA", leave: "ESCI", newRecord: "NUOVO RECORD!", rankChanged: "🏆 IL TUO RANGO È CAMBIATO!",
+        gameOver: "Fine Partita!", statScore: "⚡ PUNTI", statBest: "🏆 RECORD", statCoins: "🪙 MONETE",
+        playAgain: "Gioca Ancora", mainMenu: "Menu Principale",
+        multiplyBtn: '<span>💎 MOLTIPLICA MONETE</span><span style="font-size:11px; opacity:0.8; font-weight:400; margin-top:2px;">( GUARDA AD PER GIRARE )</span>',
+        multiResult: "PRONTO?", lbTitle: "🏆 MIGLIORI PILOTI", lbSub: "CLASSIFICA MONDIALE GALAXY RUSH",
+        lbLoading: "CARICAMENTO...", lbConnFail: "CONNESSIONE FALLITA", lbNoPlayers: "NESSUN GIOCATORE — SII IL PRIMO!",
+        lbErrLoad: "ERRORE DI CARICAMENTO", lbYourZone: "• • LA TUA ZONA • •", lbYourRank: "IL TUO RANGO:", lbPlayFirst: "GIOCA PER APPARIRE",
+        pseudoTitle: "ID PILOTA", pseudoSub: "SCEGLI IL TUO NOME PER LA CLASSIFICA",
+        pseudoInput: "IL TUO NOME...", pseudoConfirm: "CONFERMA",
+        pseudoMin: "MIN 2 CARATTERI", pseudoMax: "MAX 16 CARATTERI", pseudoChars: "LETTERE, NUMERI, - _ SOLO",
+        freeSpin: "GIRO GRATIS 🎁", freeSpinReady: "GIRO GRATIS PRONTO!",
+        spinLeft: "📺 GUARDA AD E GIRA (${n})", spinsLeft: "${n} GIRI GRATIS RIMASTI",
+        comeBack: "TORNA TRA ${t}", resetIn: "RESET: ${t}", noMoreSpins: "NESSUN GIRO OGGI!",
+        equipped: "EQUIPAGGIATO", selected: "SELEZIONATO", owned: "POSSEDUTO",
+        equip: "EQUIPAGGIA", unlock: "SBLOCCA", needCoins: "SERVONO MONETE",
+        ready: "PRONTO?", tapStart: "TOCCA PER INIZIARE"
+    },
+    de: {
+        tapToStart: "TIPPEN ZUM STARTEN", systemBoot: "SYSTEMSTART", initializing: "LÄDT...",
+        play: "SPIELEN", topPlayers: "RANGLISTE", skinShop: "SHOP", settings: "EINSTELLUNGEN",
+        spin: "🎰 DREHEN", privacy: "🛡️ DATENSCHUTZ", lblBest: "REKORD", lblCoins: "MÜNZEN",
+        shopBack: "← ZURÜCK", luckySpin: "DREHEN", optTitle: "EINSTELLUNGEN",
+        optMusic: "🎵 Musik", optEffects: "🔊 Effekte", optMute: "🔇 Stumm", optBack: "ZURÜCK",
+        boost: "BOOST", reviveHeader: "⚠️ SYSTEMFEHLER ⚠️", reviveSub: "WERBUNG SEHEN FÜR NEUSTART?",
+        reviveBtn: '<span class="btn-glitch"></span><span class="btn-txt">📺 WERBUNG & WIEDERBELEBEN</span>',
+        skip: "ÜBERSPRINGEN", leave: "VERLASSEN", newRecord: "NEUER REKORD!", rankChanged: "🏆 DEIN RANG HAT SICH GEÄNDERT!",
+        gameOver: "Spiel vorbei!", statScore: "⚡ PUNKTE", statBest: "🏆 REKORD", statCoins: "🪙 MÜNZEN",
+        playAgain: "Nochmal spielen", mainMenu: "Hauptmenü",
+        multiplyBtn: '<span>💎 MÜNZEN MULTIPLIZIEREN</span><span style="font-size:11px; opacity:0.8; font-weight:400; margin-top:2px;">( WERBUNG FÜR DREH )</span>',
+        multiResult: "BEREIT?", lbTitle: "🏆 TOP PILOTEN", lbSub: "GALAXY RUSH WELTRANGLISTE",
+        lbLoading: "LÄDT...", lbConnFail: "VERBINDUNG FEHLGESCHLAGEN", lbNoPlayers: "NOCH KEINE SPIELER — SEI DER ERSTE!",
+        lbErrLoad: "FEHLER BEIM LADEN", lbYourZone: "• • DEINE ZONE • •", lbYourRank: "DEIN RANG:", lbPlayFirst: "SPIELE UM ZU ERSCHEINEN",
+        pseudoTitle: "PILOTEN-ID", pseudoSub: "WÄHLE DEINEN NAMEN",
+        pseudoInput: "DEIN NAME...", pseudoConfirm: "BESTÄTIGEN",
+        pseudoMin: "MIN 2 ZEICHEN", pseudoMax: "MAX 16 ZEICHEN", pseudoChars: "BUCHSTABEN, ZAHLEN, - _ NUR",
+        freeSpin: "GRATIS DREH 🎁", freeSpinReady: "GRATIS DREH BEREIT!",
+        spinLeft: "📺 WERBUNG = DREH (${n})", spinsLeft: "${n} GRATIS DREHS ÜBRIG",
+        comeBack: "KOMM ZURÜCK IN ${t}", resetIn: "RESET: ${t}", noMoreSpins: "KEINE DREHS MEHR HEUTE!",
+        equipped: "AUSGERÜSTET", selected: "AUSGEWÄHLT", owned: "BESITZT",
+        equip: "AUSRÜSTEN", unlock: "FREISCHALTEN", needCoins: "MÜNZEN NÖTIG",
+        ready: "BEREIT?", tapStart: "TIPPEN ZUM STARTEN"
+    },
+    pt: {
+        tapToStart: "TOQUE PARA JOGAR", systemBoot: "INICIANDO", initializing: "CARREGANDO...",
+        play: "JOGAR", topPlayers: "RANKING", skinShop: "LOJA", settings: "CONFIG",
+        spin: "🎰 GIRAR", privacy: "🛡️ PRIVACIDADE", lblBest: "RECORDE", lblCoins: "MOEDAS",
+        shopBack: "← VOLTAR", luckySpin: "GIRAR", optTitle: "CONFIG",
+        optMusic: "🎵 Música", optEffects: "🔊 Efeitos", optMute: "🔇 Mudo", optBack: "VOLTAR",
+        boost: "BOOST", reviveHeader: "⚠️ FALHA NO SISTEMA ⚠️", reviveSub: "VER AD PARA REINICIAR?",
+        reviveBtn: '<span class="btn-glitch"></span><span class="btn-txt">📺 VER AD E REVIVER</span>',
+        skip: "PULAR", leave: "SAIR", newRecord: "NOVO RECORDE!", rankChanged: "🏆 SEU RANKING MUDOU — VEJA!",
+        gameOver: "Fim de Jogo!", statScore: "⚡ PONTOS", statBest: "🏆 RECORDE", statCoins: "🪙 MOEDAS",
+        playAgain: "Jogar Novamente", mainMenu: "Menu Principal",
+        multiplyBtn: '<span>💎 MULTIPLICAR MOEDAS</span><span style="font-size:11px; opacity:0.8; font-weight:400; margin-top:2px;">( VER AD PARA GIRAR )</span>',
+        multiResult: "PRONTO?", lbTitle: "🏆 MELHORES PILOTOS", lbSub: "RANKING MUNDIAL GALAXY RUSH",
+        lbLoading: "CARREGANDO...", lbConnFail: "CONEXÃO FALHOU", lbNoPlayers: "SEM JOGADORES — SEJA O PRIMEIRO!",
+        lbErrLoad: "ERRO AO CARREGAR", lbYourZone: "• • SUA ZONA • •", lbYourRank: "SEU RANK:", lbPlayFirst: "JOGUE PARA APARECER",
+        pseudoTitle: "ID PILOTO", pseudoSub: "ESCOLHA SEU NOME",
+        pseudoInput: "SEU NOME...", pseudoConfirm: "CONFIRMAR",
+        pseudoMin: "MÍN 2 CARACTERES", pseudoMax: "MÁX 16 CARACTERES", pseudoChars: "LETRAS, NÚMEROS, - _ APENAS",
+        freeSpin: "GIRO GRÁTIS 🎁", freeSpinReady: "GIRO GRÁTIS PRONTO!",
+        spinLeft: "📺 VER AD E GIRAR (${n})", spinsLeft: "${n} GIROS GRÁTIS RESTANTES",
+        comeBack: "VOLTE EM ${t}", resetIn: "RESET: ${t}", noMoreSpins: "SEM GIROS HOJE!",
+        equipped: "EQUIPADO", selected: "SELECIONADO", owned: "OBTIDO",
+        equip: "EQUIPAR", unlock: "DESBLOQUEAR", needCoins: "MOEDAS INSUFICIENTES",
+        ready: "PRONTO?", tapStart: "TOQUE PARA JOGAR"
+    },
+    ru: {
+        tapToStart: "НАЖМИТЕ ДЛЯ СТАРТА", systemBoot: "ЗАГРУЗКА", initializing: "ИНИЦИАЛИЗАЦИЯ...",
+        play: "ИГРАТЬ", topPlayers: "РЕЙТИНГ", skinShop: "МАГАЗИН", settings: "НАСТРОЙКИ",
+        spin: "🎰 КРУТИТЬ", privacy: "🛡️ ПРАВИЛА", lblBest: "РЕКОРД", lblCoins: "МОНЕТЫ",
+        shopBack: "← НАЗАД", luckySpin: "КРУТИТЬ", optTitle: "НАСТРОЙКИ",
+        optMusic: "🎵 Музыка", optEffects: "🔊 Эффекты", optMute: "🔇 Без звука", optBack: "НАЗАД",
+        boost: "BOOST", reviveHeader: "⚠️ СБОЙ СИСТЕМЫ ⚠️", reviveSub: "ПОСМОТРЕТЬ РЕКЛАМУ ДЛЯ ПЕРЕЗАГРУЗКИ?",
+        reviveBtn: '<span class="btn-glitch"></span><span class="btn-txt">📺 РЕКЛАМА = ЖИЗНЬ</span>',
+        skip: "ПРОПУСТИТЬ", leave: "ВЫЙТИ", newRecord: "НОВЫЙ РЕКОРД!", rankChanged: "🏆 ВАШ РАНГ ИЗМЕНИЛСЯ!",
+        gameOver: "Игра окончена!", statScore: "⚡ СЧЁТ", statBest: "🏆 РЕКОРД", statCoins: "🪙 МОНЕТЫ",
+        playAgain: "Играть снова", mainMenu: "Главное меню",
+        multiplyBtn: '<span>💎 УМНОЖИТЬ МОНЕТЫ</span><span style="font-size:11px; opacity:0.8; font-weight:400; margin-top:2px;">( РЕКЛАМА ДЛЯ ВРАЩЕНИЯ )</span>',
+        multiResult: "ГОТОВЫ?", lbTitle: "🏆 ТОП ПИЛОТОВ", lbSub: "МИРОВОЙ РЕЙТИНГ GALAXY RUSH",
+        lbLoading: "ЗАГРУЗКА...", lbConnFail: "ОШИБКА ПОДКЛЮЧЕНИЯ", lbNoPlayers: "ПОКА НЕТ ИГРОКОВ — БУДЬ ПЕРВЫМ!",
+        lbErrLoad: "ОШИБКА ЗАГРУЗКИ", lbYourZone: "• • ВАША ЗОНА • •", lbYourRank: "ВАШ РАНГ:", lbPlayFirst: "СЫГРАЙТЕ ЧТОБЫ ПОПАСТЬ",
+        pseudoTitle: "ID ПИЛОТА", pseudoSub: "ВВЕДИТЕ ВАШ ПОЗЫВНОЙ",
+        pseudoInput: "ВАШЕ ИМЯ...", pseudoConfirm: "ПОДТВЕРДИТЬ",
+        pseudoMin: "МИН 2 СИМВОЛА", pseudoMax: "МАКС 16 СИМВОЛОВ", pseudoChars: "БУКВЫ, ЦИФРЫ, - _ ТОЛЬКО",
+        freeSpin: "БЕСПЛАТНЫЙ СПИН 🎁", freeSpinReady: "БЕСПЛАТНЫЙ СПИН ГОТОВ!",
+        spinLeft: "📺 РЕКЛАМА = СПИН (${n})", spinsLeft: "${n} БЕСПЛАТНЫХ СПИНОВ",
+        comeBack: "ВЕРНИТЕСЬ ЧЕРЕЗ ${t}", resetIn: "СБРОС: ${t}", noMoreSpins: "СПИНОВ НЕТ СЕГОДНЯ!",
+        equipped: "НАДЕТО", selected: "ВЫБРАНО", owned: "ЕСТЬ",
+        equip: "НАДЕТЬ", unlock: "ОТКРЫТЬ", needCoins: "МАЛО МОНЕТ",
+        ready: "ГОТОВЫ?", tapStart: "НАЖМИТЕ ДЛЯ СТАРТА"
+    },
+    tr: {
+        tapToStart: "BAŞLAMAK İÇİN DOKUN", systemBoot: "SİSTEM BAŞLIYOR", initializing: "YÜKLENİYOR...",
+        play: "OYNA", topPlayers: "SIRALAMA", skinShop: "MAĞAZA", settings: "AYARLAR",
+        spin: "🎰 ÇEVİR", privacy: "🛡️ GİZLİLİK", lblBest: "REKOR", lblCoins: "JETON",
+        shopBack: "← GERİ", luckySpin: "ŞANS", optTitle: "AYARLAR",
+        optMusic: "🎵 Müzik", optEffects: "🔊 Efekt", optMute: "🔇 Sessiz", optBack: "GERİ",
+        boost: "BOOST", reviveHeader: "⚠️ SİSTEM HATASI ⚠️", reviveSub: "YENİDEN BAŞLATMAK İÇİN REKLAM İZLE?",
+        reviveBtn: '<span class="btn-glitch"></span><span class="btn-txt">📺 İZLE VE CANLAN</span>',
+        skip: "GEÇ", leave: "ÇIKIŞ", newRecord: "YENİ REKOR!", rankChanged: "🏆 SIRALAMAN DEĞİŞTİ!",
+        gameOver: "Oyun Bitti!", statScore: "⚡ SKOR", statBest: "🏆 REKOR", statCoins: "🪙 JETON",
+        playAgain: "Tekrar Oyna", mainMenu: "Ana Menü",
+        multiplyBtn: '<span>💎 JETONLARI KATLA</span><span style="font-size:11px; opacity:0.8; font-weight:400; margin-top:2px;">( ÇEVİRMEK İÇİN İZLE )</span>',
+        multiResult: "HAZIR MI?", lbTitle: "🏆 EN İYİLER", lbSub: "GALAXY RUSH KÜRESEL SIRALAMA",
+        lbLoading: "YÜKLENİYOR...", lbConnFail: "BAĞLANTI HATASI", lbNoPlayers: "HENÜZ OYUNCU YOK — İLK SEN OL!",
+        lbErrLoad: "YÜKLEME HATASI", lbYourZone: "• • SENİN BÖLGEN • •", lbYourRank: "SIRALAN:", lbPlayFirst: "GÖRÜNMEK İÇİN OYNA",
+        pseudoTitle: "PİLOT ID", pseudoSub: "SIRALAMA İÇİN İSMİNİ SEÇ",
+        pseudoInput: "İSMİN...", pseudoConfirm: "ONAYLA",
+        pseudoMin: "MİN 2 KARAKTER", pseudoMax: "MAKS 16 KARAKTER", pseudoChars: "HARF, RAKAM, - _ SADECE",
+        freeSpin: "ÜCRETSİZ ÇEVİR 🎁", freeSpinReady: "ÜCRETSİZ ÇEVİR HAZIR!",
+        spinLeft: "📺 REKLAM İZLE VE ÇEVİR (${n})", spinsLeft: "${n} ÜCRETSİZ ÇEVİR KALDI",
+        comeBack: "${t} SONRA GEL", resetIn: "SIFIRLAMA: ${t}", noMoreSpins: "BUGÜN ÇEVİR YOK!",
+        equipped: "GİYİLDİ", selected: "SEÇİLDİ", owned: "SENDE VAR",
+        equip: "GİY", unlock: "AÇ", needCoins: "JETON YETERSİZ",
+        ready: "HAZIR MI?", tapStart: "BAŞLAMAK İÇİN DOKUN"
+    },
+    zh: {
+        tapToStart: "点击开始", systemBoot: "系统启动", initializing: "加载中...",
+        play: "开始游戏", topPlayers: "排行榜", skinShop: "商店", settings: "设置",
+        spin: "🎰 抽奖", privacy: "🛡️ 隐私", lblBest: "最高分", lblCoins: "金币",
+        shopBack: "← 返回", luckySpin: "幸运抽奖", optTitle: "设置",
+        optMusic: "🎵 音乐", optEffects: "🔊 音效", optMute: "🔇 静音", optBack: "返回",
+        boost: "BOOST", reviveHeader: "⚠️ 系统故障 ⚠️", reviveSub: "观看广告重启系统？",
+        reviveBtn: '<span class="btn-glitch"></span><span class="btn-txt">📺 看广告复活</span>',
+        skip: "跳过", leave: "退出", newRecord: "新纪录！", rankChanged: "🏆 你的排名变了！",
+        gameOver: "游戏结束！", statScore: "⚡ 分数", statBest: "🏆 最高分", statCoins: "🪙 金币",
+        playAgain: "再玩一次", mainMenu: "主菜单",
+        multiplyBtn: '<span>💎 金币翻倍</span><span style="font-size:11px; opacity:0.8; font-weight:400; margin-top:2px;">( 观看视频抽奖 )</span>',
+        multiResult: "准备好了吗？", lbTitle: "🏆 顶级飞行员", lbSub: "GALAXY RUSH 全球排名",
+        lbLoading: "排名加载中...", lbConnFail: "连接失败", lbNoPlayers: "暂无玩家 — 成为第一个！",
+        lbErrLoad: "加载错误", lbYourZone: "• • 你的区域 • •", lbYourRank: "你的排名:", lbPlayFirst: "玩一局才能上榜",
+        pseudoTitle: "飞行员 ID", pseudoSub: "输入你的代号",
+        pseudoInput: "你的名字...", pseudoConfirm: "确认",
+        pseudoMin: "至少2个字符", pseudoMax: "最多16个字符", pseudoChars: "仅限字母、数字、- _",
+        freeSpin: "免费抽奖 🎁", freeSpinReady: "免费抽奖就绪！",
+        spinLeft: "📺 看广告免费抽 (${n})", spinsLeft: "剩${n}次免费抽奖",
+        comeBack: "${t}后回来", resetIn: "重置: ${t}", noMoreSpins: "今天没有抽奖了！",
+        equipped: "已装备", selected: "已选择", owned: "已拥有",
+        equip: "装备", unlock: "解锁", needCoins: "金币不足",
+        ready: "准备好了吗？", tapStart: "点击开始"
+    },
+    ja: {
+        tapToStart: "タップして開始", systemBoot: "システム起動", initializing: "ロード中...",
+        play: "プレイ", topPlayers: "ランキング", skinShop: "ショップ", settings: "設定",
+        spin: "🎰 回す", privacy: "🛡️ プライバシー", lblBest: "ベスト", lblCoins: "コイン",
+        shopBack: "← 戻る", luckySpin: "スピン", optTitle: "設定",
+        optMusic: "🎵 音楽", optEffects: "🔊 効果音", optMute: "🔇 ミュート", optBack: "戻る",
+        boost: "BOOST", reviveHeader: "⚠️ システム障害 ⚠️", reviveSub: "動画を見て再起動しますか？",
+        reviveBtn: '<span class="btn-glitch"></span><span class="btn-txt">📺 広告を見て復活</span>',
+        skip: "スキップ", leave: "退出", newRecord: "新記録！", rankChanged: "🏆 ランクが変更されました！",
+        gameOver: "ゲームオーバー！", statScore: "⚡ スコア", statBest: "🏆 ベスト", statCoins: "🪙 コイン",
+        playAgain: "もう一度", mainMenu: "メインメニュー",
+        multiplyBtn: '<span>💎 コインを増やす</span><span style="font-size:11px; opacity:0.8; font-weight:400; margin-top:2px;">( 動画を見て回す )</span>',
+        multiResult: "準備OK？", lbTitle: "🏆 トッププレイヤー", lbSub: "GALAXY RUSH グローバルランキング",
+        lbLoading: "読み込み中...", lbConnFail: "接続失敗", lbNoPlayers: "プレイヤーなし — 最初の一人に！",
+        lbErrLoad: "読み込みエラー", lbYourZone: "• • あなたのゾーン • •", lbYourRank: "あなたのランク:", lbPlayFirst: "プレイして登場",
+        pseudoTitle: "パイロットID", pseudoSub: "名前を入力してください",
+        pseudoInput: "あなたの名前...", pseudoConfirm: "確認",
+        pseudoMin: "2文字以上", pseudoMax: "16文字以下", pseudoChars: "文字、数字、- _ のみ",
+        freeSpin: "無料スピン 🎁", freeSpinReady: "無料スピン準備完了！",
+        spinLeft: "📺 広告を見て回す (残り${n})", spinsLeft: "残り${n}回無料スピン",
+        comeBack: "${t}後に戻って", resetIn: "リセット: ${t}", noMoreSpins: "今日のスピンは終了！",
+        equipped: "装備中", selected: "選択済み", owned: "所有済み",
+        equip: "装備", unlock: "解放", needCoins: "コイン不足",
+        ready: "準備OK？", tapStart: "タップして開始"
+    },
+    ko: {
+        tapToStart: "탭하여 시작", systemBoot: "시스템 부팅", initializing: "로딩 중...",
+        play: "플레이", topPlayers: "랭킹", skinShop: "상점", settings: "설정",
+        spin: "🎰 돌리기", privacy: "🛡️ 개인정보", lblBest: "최고 점수", lblCoins: "코인",
+        shopBack: "← 뒤로", luckySpin: "스핀", optTitle: "설정",
+        optMusic: "🎵 음악", optEffects: "🔊 효과음", optMute: "🔇 음소거", optBack: "뒤로",
+        boost: "BOOST", reviveHeader: "⚠️ 시스템 오류 ⚠️", reviveSub: "광고를 보고 재부팅하시겠습니까?",
+        reviveBtn: '<span class="btn-glitch"></span><span class="btn-txt">📺 광고 보고 부활</span>',
+        skip: "건너뛰기", leave: "나가기", newRecord: "신기록!", rankChanged: "🏆 순위가 변경되었습니다!",
+        gameOver: "게임 오버!", statScore: "⚡ 점수", statBest: "🏆 최고 점수", statCoins: "🪙 코인",
+        playAgain: "다시하기", mainMenu: "메인 메뉴",
+        multiplyBtn: '<span>💎 코인 배가</span><span style="font-size:11px; opacity:0.8; font-weight:400; margin-top:2px;">( 광고 보고 돌리기 )</span>',
+        multiResult: "준비됐나요?", lbTitle: "🏆 최고 조종사", lbSub: "GALAXY RUSH 글로벌 랭킹",
+        lbLoading: "로딩 중...", lbConnFail: "연결 실패", lbNoPlayers: "아직 플레이어 없음 — 첫 번째가 되세요!",
+        lbErrLoad: "로딩 오류", lbYourZone: "• • 당신의 구역 • •", lbYourRank: "당신의 순위:", lbPlayFirst: "플레이하여 등장",
+        pseudoTitle: "파일럿 ID", pseudoSub: "이름을 입력하세요",
+        pseudoInput: "당신의 이름...", pseudoConfirm: "확인",
+        pseudoMin: "최소 2자", pseudoMax: "최대 16자", pseudoChars: "문자, 숫자, - _ 만",
+        freeSpin: "무료 스핀 🎁", freeSpinReady: "무료 스핀 준비!",
+        spinLeft: "📺 광고 보고 돌리기 (${n}회)", spinsLeft: "${n}회 무료 스핀 남음",
+        comeBack: "${t} 후에 오세요", resetIn: "리셋: ${t}", noMoreSpins: "오늘 스핀 끝!",
+        equipped: "장착 중", selected: "선택됨", owned: "보유 중",
+        equip: "장착", unlock: "해제", needCoins: "코인 부족",
+        ready: "준비됐나요?", tapStart: "탭하여 시작"
+    },
+    ar: {
+        tapToStart: "إضغط للبدء", systemBoot: "تشغيل النظام", initializing: "جاري التحميل...",
+        play: "العب", topPlayers: "المتصدرين", skinShop: "المتجر", settings: "الإعدادات",
+        spin: "🎰 العب", privacy: "🛡️ الخصوصية", lblBest: "أفضل", lblCoins: "عملات",
+        shopBack: "← رجوع", luckySpin: "لف", optTitle: "الإعدادات",
+        optMusic: "🎵 الموسيقى", optEffects: "🔊 المؤثرات", optMute: "🔇 كتم", optBack: "رجوع",
+        boost: "BOOST", reviveHeader: "⚠️ فشل في النظام ⚠️", reviveSub: "شاهد إعلان لإعادة التشغيل؟",
+        reviveBtn: '<span class="btn-glitch"></span><span class="btn-txt">📺 شاهد لتعيش</span>',
+        skip: "تخطي", leave: "خروج", newRecord: "رقم قياسي جديد!", rankChanged: "🏆 تغير تصنيفك!",
+        gameOver: "انتهت اللعبة!", statScore: "⚡ النتيجة", statBest: "🏆 أفضل", statCoins: "🪙 عملات",
+        playAgain: "العب مجدداً", mainMenu: "القائمة",
+        multiplyBtn: '<span>💎 ضاعف العملات</span><span style="font-size:11px; opacity:0.8; font-weight:400; margin-top:2px;">( شاهد إعلان لتلعب )</span>',
+        multiResult: "مستعد؟", lbTitle: "🏆 أفضل الطيارين", lbSub: "تصنيف GALAXY RUSH العالمي",
+        lbLoading: "جاري التحميل...", lbConnFail: "فشل الاتصال", lbNoPlayers: "لا يوجد لاعبون — كن الأول!",
+        lbErrLoad: "خطأ في التحميل", lbYourZone: "• • منطقتك • •", lbYourRank: "تصنيفك:", lbPlayFirst: "العب لتظهر هنا",
+        pseudoTitle: "معرف الطيار", pseudoSub: "اختر اسمك للوحة المتصدرين",
+        pseudoInput: "اسمك...", pseudoConfirm: "تأكيد",
+        pseudoMin: "حرفان على الأقل", pseudoMax: "16 حرف كحد أقصى", pseudoChars: "حروف وأرقام و - _ فقط",
+        freeSpin: "لفة مجانية 🎁", freeSpinReady: "لفة مجانية جاهزة!",
+        spinLeft: "📺 شاهد إعلان للف (${n})", spinsLeft: "${n} لفات مجانية متبقية",
+        comeBack: "عد بعد ${t}", resetIn: "إعادة: ${t}", noMoreSpins: "لا لفات اليوم!",
+        equipped: "مُجهّز", selected: "مُختار", owned: "مملوك",
+        equip: "تجهيز", unlock: "فتح", needCoins: "عملات غير كافية",
+        ready: "مستعد؟", tapStart: "إضغط للبدء"
+    },
+    hi: {
+        tapToStart: "खेलने के लिए टैप करें", systemBoot: "सिस्टम चालू", initializing: "लोड हो रहा है...",
+        play: "खेलें", topPlayers: "लीडरबोर्ड", skinShop: "दुकान", settings: "सेटिंग्स",
+        spin: "🎰 घुमाएं", privacy: "🛡️ गोपनीयता", lblBest: "सर्वश्रेष्ठ", lblCoins: "सिक्के",
+        shopBack: "← पीछे", luckySpin: "घुमाएं", optTitle: "सेटिंग्स",
+        optMusic: "🎵 संगीत", optEffects: "🔊 प्रभाव", optMute: "🔇 म्यूट", optBack: "पीछे",
+        boost: "BOOST", reviveHeader: "⚠️ सिस्टम विफलता ⚠️", reviveSub: "सिस्टम रीबूट के लिए विज्ञापन देखें?",
+        reviveBtn: '<span class="btn-glitch"></span><span class="btn-txt">📺 विज्ञापन देखें और जिएं</span>',
+        skip: "छोड़ें", leave: "बाहर", newRecord: "नया रिकॉर्ड!", rankChanged: "🏆 आपका रैंक बदल गया!",
+        gameOver: "खेल खत्म!", statScore: "⚡ स्कोर", statBest: "🏆 सर्वश्रेष्ठ", statCoins: "🪙 सिक्के",
+        playAgain: "फिर से खेलें", mainMenu: "मुख्य मेनू",
+        multiplyBtn: '<span>💎 सिक्के गुणा करें</span><span style="font-size:11px; opacity:0.8; font-weight:400; margin-top:2px;">( घुमाने के लिए विज्ञापन देखें )</span>',
+        multiResult: "तैयार?", lbTitle: "🏆 शीर्ष खिलाड़ी", lbSub: "GALAXY RUSH ग्लोबल रैंकिंग",
+        lbLoading: "लोड हो रहा है...", lbConnFail: "कनेक्शन विफल", lbNoPlayers: "कोई खिलाड़ी नहीं — पहले बनें!",
+        lbErrLoad: "लोडिंग त्रुटि", lbYourZone: "• • आपका क्षेत्र • •", lbYourRank: "आपका रैंक:", lbPlayFirst: "दिखने के लिए खेलें",
+        pseudoTitle: "पायलट आईडी", pseudoSub: "अपना नाम चुनें",
+        pseudoInput: "आपका नाम...", pseudoConfirm: "पुष्टि करें",
+        pseudoMin: "कम से कम 2 अक्षर", pseudoMax: "अधिकतम 16 अक्षर", pseudoChars: "अक्षर, संख्या, - _ केवल",
+        freeSpin: "मुफ़्त स्पिन 🎁", freeSpinReady: "मुफ़्त स्पिन तैयार!",
+        spinLeft: "📺 विज्ञापन = स्पिन (${n})", spinsLeft: "${n} मुफ़्त स्पिन बाकी",
+        comeBack: "${t} बाद आएं", resetIn: "रीसेट: ${t}", noMoreSpins: "आज स्पिन खत्म!",
+        equipped: "सज्जित", selected: "चयनित", owned: "स्वामित्व",
+        equip: "पहनें", unlock: "खोलें", needCoins: "सिक्के कम",
+        ready: "तैयार?", tapStart: "खेलने के लिए टैप करें"
+    }
+};
+
+// ──────────────────────────────────────────────
+// 🔤 DÉTECTION LANGUE + OBJET GLOBAL `i18n`
+// ──────────────────────────────────────────────
+function getCurrentLang() {
+    const saved = localStorage.getItem('galaxyLang');
+    if (saved && LANGS[saved]) return saved;
+    const browser = navigator.language.slice(0, 2);
+    if (LANGS[browser]) return browser;
+    return "en";
+}
+
+let _userLang = getCurrentLang();
+let i18n = LANGS[_userLang];
+
+// Changement de langue depuis les options
+window.changeLanguage = function(newLang) {
+    if (!LANGS[newLang]) return;
+    localStorage.setItem('galaxyLang', newLang);
+    _userLang = newLang;
+    i18n = LANGS[newLang];
+    applyTranslations();
+    // Mettre à jour le select
+    const sel = document.getElementById('langSelect');
+    if (sel) sel.value = newLang;
+};
+
+// ──────────────────────────────────────────────
+// 🎯 APPLICATION DES TRADUCTIONS (ÉLÉMENTS STATIQUES)
+// ──────────────────────────────────────────────
+function applyTranslations() {
+    const setText = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+    const setHTML = (id, val) => { const el = document.getElementById(id); if (el) el.innerHTML = val; };
+    const setQ = (sel, val) => { const el = document.querySelector(sel); if (el) el.textContent = val; };
+
+    // INTRO
+    setQ('.introHint', i18n.tapToStart);
+
+    // MENU
+    setText('btnPlay', i18n.play);
+    setText('btnLeaderboard', i18n.topPlayers);
+    setText('btnShop', i18n.skinShop);
+    setText('btnOptions', i18n.settings);
+    setHTML('btnPrivacy', i18n.privacy);
+    setQ('.statBox.best .statLabel', i18n.lblBest);
+    setQ('.statBox.coins .statLabel', i18n.lblCoins);
+
+    // Roulette btn (préserver le span dynamique du status)
+    const rouletteBtn = document.querySelector('.roulette-btn');
+    if (rouletteBtn && rouletteBtn.childNodes[0]) {
+        rouletteBtn.childNodes[0].nodeValue = i18n.spin + " ";
+    }
+
+    // OPTIONS (IDs propres, pas de nth-child)
+    setText('optTitle', i18n.optTitle);
+    setText('optMusicLabel', i18n.optMusic);
+    setText('optSfxLabel', i18n.optEffects);
+    const muteLabel = document.getElementById('optMuteLabel');
+    if (muteLabel && muteLabel.lastChild && muteLabel.lastChild.nodeType === 3) {
+        muteLabel.lastChild.nodeValue = " " + i18n.optMute;
+    }
+    setText('optBack', i18n.optBack);
+
+    // LANGUAGE SELECT — sync dropdown avec la langue active
+    const langSel = document.getElementById('langSelect');
+    if (langSel) langSel.value = _userLang;
+
+    // HUD
+    setText('overdriveLabel', i18n.boost);
+
+    // REVIVE
+    setQ('.revive-header', i18n.reviveHeader);
+    setQ('.revive-sub', i18n.reviveSub);
+    setHTML('continueAdBtn', i18n.reviveBtn);
+    setText('btnSkip', i18n.skip);
+
+    // ROULETTE POPUP
+    setText('rouletteLeaveBtn', i18n.leave);
+    setText('multiResult', i18n.multiResult);
+
+    // GAME OVER
+    setText('newRecord', i18n.newRecord);
+    setText('rankChangedBtn', i18n.rankChanged);
+    setQ('.gameOverTitle', i18n.gameOver);
+    setQ('.stat-score', i18n.statScore);
+    setQ('.stat-best', i18n.statBest);
+    setQ('.stat-coins', i18n.statCoins);
+    setText('restartBtn', i18n.playAgain);
+    setText('menuBtn', i18n.mainMenu);
+    setHTML('multiplyBtn', i18n.multiplyBtn);
+
+    // LEADERBOARD
+    setQ('.lb-title', i18n.lbTitle);
+    setQ('.lb-subtitle', i18n.lbSub);
+    setQ('.lb-loading', i18n.lbLoading);
+
+    // PSEUDO POPUP
+    setQ('.pseudo-title', i18n.pseudoTitle);
+    setQ('.pseudo-sub', i18n.pseudoSub);
+    const pseudoIn = document.getElementById('pseudoInput');
+    if (pseudoIn) pseudoIn.placeholder = i18n.pseudoInput;
+    setText('pseudoConfirmBtn', i18n.pseudoConfirm);
+}
+
+// Lancer au boot
+if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", applyTranslations);
+} else {
+    applyTranslations();
+}
+
+// Re-traduire le shop après son init dynamique
+const _origInitShopUI = typeof initShopUI === "function" ? initShopUI : null;
+if (_origInitShopUI) {
+    window.initShopUI = function() {
+        _origInitShopUI();
+        const backBtn = document.getElementById("shopBackBtn");
+        if (backBtn) backBtn.textContent = i18n.shopBack;
+        const shopSpin = document.querySelector("#shopAdBlock .loot-action");
+        if (shopSpin) shopSpin.textContent = i18n.luckySpin;
+    };
+}
 </script>
 </body>
 </html>
