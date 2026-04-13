@@ -1,6 +1,6 @@
 workflows:
   ios-capacitor-workflow:
-    name: Galaxy Rush iOS Build 1.0.9
+    name: Galaxy Rush iOS Build 1.1.0
     max_build_duration: 60
     instance_type: mac_mini_m2
     integrations:
@@ -10,79 +10,29 @@ workflows:
         - signin
       xcode: latest
       node: 20
+      cocoapods: default
       ios_signing:
         distribution_type: app_store
         bundle_identifier: com.a2games.galaxyrush
-      vars:
-        ADMOB_APP_ID: "ca-app-pub-2409581870901167~7654643904"
     scripts:
       - name: Install JS Dependencies
         script: |
-          npm install @capacitor/core@^7.0.0 @capacitor/ios@^7.0.0 @capacitor/cli@^7.0.0 --legacy-peer-deps
-          npm install @capacitor-community/admob@^8.0.0 --legacy-peer-deps
-          npm install @openforge/capacitor-apple-game-center --legacy-peer-deps
-          npm install @capacitor/local-notifications@^7.0.0 --legacy-peer-deps
-          npm install @capacitor-community/firebase-analytics --legacy-peer-deps
-          npm install capacitor-plugin-app-tracking-transparency --legacy-peer-deps
+          npm install --legacy-peer-deps
 
       - name: Capacitor Sync
         script: |
           npx cap sync ios
 
-      - name: Patch Package.swift for capacitor-swift-pm 8.x
-        script: |
-          echo "🔍 Patch ciblé capacitor-swift-pm uniquement..."
-          for PKG in $(find . -name "Package.swift" | xargs grep -l "capacitor-swift-pm" 2>/dev/null); do
-            echo "📝 Patching $PKG"
-            sed -i '' '/capacitor-swift-pm/s/from: "[0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*"/from: "8.0.0"/' "$PKG" || true
-            sed -i '' '/capacitor-swift-pm/s/exact: "[0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*"/.upToNextMajor(from: "8.0.0")/' "$PKG" || true
-            sed -i '' '/capacitor-swift-pm/s/\.upToNextMinor(from: "[0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*")/.upToNextMajor(from: "8.0.0")/' "$PKG" || true
-            sed -i '' '/capacitor-swift-pm/s/\.\.<[0-9][0-9]*\.0\.0/..<9.0.0/' "$PKG" || true
-            echo "✅ Contenu final de $PKG :"
-            cat "$PKG"
-          done
-
-      - name: Force Clean & Resolve SPM Dependencies
+      - name: Install CocoaPods (Appodeal + adapters)
         script: |
           cd ios/App
-          rm -f App.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved
-          xcodebuild -resolvePackageDependencies -project App.xcodeproj -scheme App
+          pod install --repo-update
 
       - name: Configure Info.plist
         script: |
           cd ios/App/App
-          /usr/libexec/PlistBuddy -c "Delete :GADApplicationIdentifier" Info.plist || true
-          /usr/libexec/PlistBuddy -c "Add :GADApplicationIdentifier string $ADMOB_APP_ID" Info.plist
-          /usr/libexec/PlistBuddy -c "Delete :NSUserTrackingUsageDescription" Info.plist || true
-          /usr/libexec/PlistBuddy -c "Add :NSUserTrackingUsageDescription string 'This identifier will be used to deliver personalized ads and support the development of Galaxy Rush.'" Info.plist
-          /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString 1.0.9" Info.plist
+          /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString 1.1.0" Info.plist
           /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $BUILD_NUMBER" Info.plist
-
-      - name: Enable Game Center Entitlements
-        script: |
-          cd ios/App
-          if [ ! -f App/App.entitlements ]; then
-            cat > App/App.entitlements << 'EOF'
-          <?xml version="1.0" encoding="UTF-8"?>
-          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-          <plist version="1.0">
-          <dict>
-          </dict>
-          </plist>
-          EOF
-          fi
-          /usr/libexec/PlistBuddy -c "Add :com.apple.developer.game-center bool true" App/App.entitlements || true
-          gem install xcodeproj --no-document
-          ruby -e "
-          require 'xcodeproj'
-          project = Xcodeproj::Project.open('App.xcodeproj')
-          target = project.targets.find { |t| t.name == 'App' }
-          target.build_configurations.each do |config|
-            config.build_settings['CODE_SIGN_ENTITLEMENTS'] = 'App/App.entitlements'
-          end
-          project.save
-          puts '✅ Entitlements configured'
-          "
 
       - name: Set up code signing
         script: |
@@ -92,15 +42,9 @@ workflows:
         script: |
           cd ios/App
           xcode-project build-ipa \
-            --project "App.xcodeproj" \
+            --workspace "App.xcworkspace" \
             --scheme App \
-            --clean \
-            --archive-flags "CODE_SIGN_ENTITLEMENTS=App/App.entitlements"
-
-      - name: Verify Game Center in build
-        script: |
-          echo "🔍 Checking entitlements in final build..."
-          codesign -d --entitlements :- ios/App/build/ios/ipa/*.ipa 2>/dev/null || true
+            --clean
 
     artifacts:
       - ios/App/build/ios/ipa/*.ipa
