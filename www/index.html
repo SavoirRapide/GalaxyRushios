@@ -1443,6 +1443,8 @@ body.playing .menuParticles {
 <audio id="sfxDeath" src="audio/death.mp3" preload="auto"></audio>
 <audio id="sfxIntro" src="audio/intro_burst.mp3" preload="auto"></audio>
 <audio id="sfxOverdrive" src="audio/overdrive_start.mp3" preload="auto"></audio>
+<audio id="bgmMenu" src="audio/Menu.mp3" loop preload="auto"></audio>
+<audio id="bgmGame" src="audio/musicgame.mp3" loop preload="auto"></audio>
 
  <div id="overlayIntro">
     <canvas id="introEmbers"></canvas>
@@ -2223,129 +2225,49 @@ if (touchZone){
 
 
 /* =========================================================
-   🔊 AUDIO MANAGER V18 (FINAL - RAM BUFFERING & MUTE FIX)
-   - Charge le son en RAM (Anti-coupure Android)
-   - Gestion du volume via GainNodes (Mute instantané)
+   🔊 AUDIO MANAGER (COMPATIBLE iOS + Android)
+   - Utilisation des balises <audio> standards
+   - Contourne le bug iOS qui ignore la propriété .volume
 ========================================================= */
 
 const sfxDeath = document.getElementById("sfxDeath");
 const sfxOverdrive = document.getElementById("sfxOverdrive");
 const sfxIntro = document.getElementById("sfxIntro");
 
-// --- CONTEXTE AUDIO ---
-const AudioContext = window.AudioContext || window.webkitAudioContext;
-let audioCtx = new AudioContext();
+const bgmMenu = document.getElementById("bgmMenu");
+const bgmGame = document.getElementById("bgmGame");
 
-// --- CONFIGURATION ---
 const audioSettings = JSON.parse(localStorage.getItem("audioSettings") || "null") 
       || { music: 70, sfx: 80, mute: false };
 
 let currentMusicState = "none";
 let audioUnlocked = false;
 
-// STOCKE LES SONS EN RAM ICI
-const SOUNDS = {
-    menu: { buffer: null, source: null, gainNode: null, url: 'audio/Menu.mp3' },
-    game: { buffer: null, source: null, gainNode: null, url: 'audio/musicgame.mp3' }
-};
-
-// --- 1. LE CHARGEUR RAM ---
-async function loadSoundToRAM(key) {
-    try {
-        const response = await fetch(SOUNDS[key].url);
-        const arrayBuffer = await response.arrayBuffer();
-        const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
-        SOUNDS[key].buffer = audioBuffer;
-        console.log(`✅ ${key} chargé en RAM`);
-    } catch (e) {
-        console.error(`❌ Erreur chargement ${key}:`, e);
-    }
-}
-
-// Chargement initial
-loadSoundToRAM('menu');
-loadSoundToRAM('game');
-
-// --- 2. LE LECTEUR DE BUFFER (AVEC GESTION MUTE) ---
-function playBuffer(key, volumeTarget) {
-    const sound = SOUNDS[key];
-    if (!sound.buffer) return; 
-
-    // Stop ancienne instance
-    stopBuffer(key);
-
-    // Création Source & Gain
-    const source = audioCtx.createBufferSource();
-    source.buffer = sound.buffer;
-    source.loop = true;
-
-    const gainNode = audioCtx.createGain();
-    
-    // 🛡️ FIX MUTE CRITIQUE : On vérifie le mute AVANT de donner le volume
-    // Si mute est coché, le volume de départ EST ZÉRO.
-    const startVol = audioSettings.mute ? 0 : volumeTarget;
-    gainNode.gain.value = startVol; 
-    
-    // Connexions
-    source.connect(gainNode);
-    gainNode.connect(audioCtx.destination);
-
-    source.start(0);
-    
-    // Sauvegarde des références
-    sound.source = source;
-    sound.gainNode = gainNode;
-}
-
-function stopBuffer(key) {
-    const sound = SOUNDS[key];
-    if (sound.source) {
-        try { 
-            // Fade out rapide
-            if(sound.gainNode) {
-                sound.gainNode.gain.setTargetAtTime(0, audioCtx.currentTime, 0.1);
-            }
-            setTimeout(() => {
-                if(sound.source) sound.source.stop();
-                sound.source = null;
-                sound.gainNode = null;
-            }, 150);
-        } catch(e){}
-    }
-}
-
-// --- 3. FONCTION PRINCIPALE (PLAY MUSIC) ---
+// --- PLAY MUSIC (balises <audio> HTML) ---
 function playMusic(which) {
     if (currentMusicState === which) return;
     currentMusicState = which;
 
-    // Volume de base (sans prendre en compte le mute ici, c'est géré dans playBuffer)
-    const vol = Math.max(0, Math.min(1, audioSettings?.music / 100 || 0.6));
-
-    if (audioCtx.state === 'suspended') audioCtx.resume();
+    applyAudioSettings();
 
     if (which === "game") {
-        stopBuffer('menu');
-        playBuffer('game', vol);
+        if (bgmMenu) bgmMenu.pause();
+        if (bgmGame) { bgmGame.currentTime = 0; bgmGame.play().catch(()=>{}); }
     } 
     else if (which === "menu") {
-        stopBuffer('game');
-        playBuffer('menu', vol * 0.9);
+        if (bgmGame) bgmGame.pause();
+        if (bgmMenu) { bgmMenu.currentTime = 0; bgmMenu.play().catch(()=>{}); }
     } 
     else {
-        stopBuffer('menu');
-        stopBuffer('game');
+        if (bgmMenu) bgmMenu.pause();
+        if (bgmGame) bgmGame.pause();
         currentMusicState = "none";
     }
 }
 
-// --- 4. SFX (Compatible Mute) ---
+// --- SFX (Compatible Mute) ---
 function playSFX(originalTrack, volumeScale = 1.0) {
-    // Si MUTE est activé, on ne joue rien du tout
-    if (!originalTrack || audioSettings.mute) return;
-    
-    if (audioCtx.state === 'suspended') audioCtx.resume();
-
+    if (!originalTrack || audioSettings.mute || audioSettings.sfx === 0) return;
     const clone = originalTrack.cloneNode();
     clone.volume = Math.max(0, Math.min(1, (audioSettings.sfx / 100) * volumeScale));
     clone.play().catch(()=>{});
@@ -2361,17 +2283,18 @@ const optMusic = document.getElementById("optMusic");
 const optSfx   = document.getElementById("optSfx");
 const optMute  = document.getElementById("optMute");
 
-// Fonction Maître du Volume
 function applyAudioSettings() {
-    // Si mute coché, volume cible = 0. Sinon, volume du slider.
-    const vol = audioSettings.mute ? 0 : (audioSettings.music / 100);
-    
-    // On applique immédiatement aux musiques en cours
-    if (SOUNDS.menu.gainNode) {
-        SOUNDS.menu.gainNode.gain.setTargetAtTime(vol * 0.9, audioCtx.currentTime, 0.05);
+    // 🔥 iOS ignore volume=0, on DOIT forcer .muted
+    const isMuted = audioSettings.mute || audioSettings.music === 0;
+    const vol = isMuted ? 0 : Math.max(0, Math.min(1, audioSettings.music / 100));
+
+    if (bgmMenu) {
+        bgmMenu.volume = vol * 0.9;
+        bgmMenu.muted = isMuted;
     }
-    if (SOUNDS.game.gainNode) {
-        SOUNDS.game.gainNode.gain.setTargetAtTime(vol, audioCtx.currentTime, 0.05);
+    if (bgmGame) {
+        bgmGame.volume = vol;
+        bgmGame.muted = isMuted;
     }
 }
 
@@ -2383,7 +2306,7 @@ if (optMusic && optSfx && optMute) {
     optMusic.addEventListener("input", () => {
         audioSettings.music = +optMusic.value;
         localStorage.setItem("audioSettings", JSON.stringify(audioSettings));
-        applyAudioSettings(); // Mise à jour live
+        applyAudioSettings();
     });
 
     optSfx.addEventListener("input", () => {
@@ -2394,44 +2317,31 @@ if (optMusic && optSfx && optMute) {
     optMute.addEventListener("change", () => {
         audioSettings.mute = optMute.checked;
         localStorage.setItem("audioSettings", JSON.stringify(audioSettings));
-        
-        // Mute Physique (Coupe tout immédiatement)
-        if (audioSettings.mute) {
-            if (SOUNDS.menu.gainNode) SOUNDS.menu.gainNode.gain.value = 0;
-            if (SOUNDS.game.gainNode) SOUNDS.game.gainNode.gain.value = 0;
-        } else {
-            // Unmute : On rétablit le volume
-            applyAudioSettings();
-            
-            // Relance sécurité si le moteur s'est endormi
-            if (currentMusicState !== "none" && audioCtx.state === 'suspended') {
-                audioCtx.resume();
-            }
-        }
+        applyAudioSettings();
     });
 }
 
 function unlockAllAudio() {
   if (audioUnlocked) return;
   audioUnlocked = true;
-  if (audioCtx.state === 'suspended') audioCtx.resume();
-  [sfxDeath, sfxIntro, sfxOverdrive].forEach(snd => { if(snd) snd.load(); });
+  [sfxDeath, sfxIntro, sfxOverdrive, bgmMenu, bgmGame].forEach(snd => { if(snd) snd.load(); });
 }
 
 document.addEventListener("visibilitychange", () => {
     if (document.hidden) {
         // L'app passe en arrière-plan (Pub, SMS, Verrouillage)
-        audioCtx.suspend();
+        if (bgmMenu && !bgmMenu.paused) bgmMenu.pause();
+        if (bgmGame && !bgmGame.paused) bgmGame.pause();
         if (gameRunning) {
             window._wasRunning = true;
-            stopLoop(); // Coupe le moteur proprement
+            stopLoop();
         }
     } else {
         // L'app revient au premier plan
-        audioCtx.resume();
+        if (currentMusicState === "menu" && bgmMenu) bgmMenu.play().catch(()=>{});
+        if (currentMusicState === "game" && bgmGame) bgmGame.play().catch(()=>{});
         if (window._wasRunning) {
             window._wasRunning = false;
-            // startLoop() contient déjà "lastTS = 0" ce qui empêche le saut temporel !
             startLoop(); 
         }
     }
