@@ -7524,9 +7524,14 @@ function resetLoopTimers(hard = false){
 // ================= GAME OVER / MENU =================
 function goToMenu(){
   _startRunLock = false;          // 🔓 RÉARMEMENT CRITIQUE
-  setUIState("menu");
-  document.body.classList.remove("playing");
   gameOverTriggered = false;
+  document.body.classList.remove("playing");
+
+  // 🔥 Libère la mémoire GPU du Canvas AVANT de lancer le menu (fix crash iOS)
+  stopGameLoop();
+
+  // 📺 Change l'état de l'UI
+  setUIState("menu");
 }
 
 
