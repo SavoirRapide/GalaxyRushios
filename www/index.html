@@ -8603,8 +8603,8 @@ function hardRefreshCanvas() {
    📺 APPODEAL MANAGER + 🏆 PLAY GAMES (REMPLACEMENT ADMOB)
 ========================================================= */
 
-// --- BRIDGE NATIF (injecté par MainActivity.java) ---
-const AppodealNative = window.AppodealBridge || null;
+// --- BRIDGE NATIF (lookup dynamique — le bridge peut être injecté après le chargement) ---
+function getAppodealBridge() { return window.AppodealBridge || null; }
 
 // --- CONFIGURATION ---
 const LEADERBOARD_ID = "CgkI84HfzfEDEAIQAQ";
@@ -8726,14 +8726,15 @@ async function showLeaderboard() {
 ========================================================= */
 
 async function initAds() {
-    if (!AppodealNative) {
+    const bridge = getAppodealBridge();
+    if (!bridge) {
         console.log("Appodeal: Mode Web (Pas de pubs)");
         return;
     }
 
     try {
         console.log("Appodeal: Initialisation via bridge natif...");
-        AppodealNative.initAds();
+        bridge.initAds();
         canRequestAds = true;
         console.log("✅ Appodeal: Demande d'init envoyée !");
     } catch (e) {
@@ -8758,16 +8759,18 @@ window.addEventListener('onAdClosed', () => {
 });
 
 async function showGameOverAd() {
-    if (!AppodealNative || !canRequestAds) return;
+    const bridge = getAppodealBridge();
+    if (!bridge || !canRequestAds) return;
     try { 
-        AppodealNative.showInterstitial(); 
+        bridge.showInterstitial(); 
     } catch (e) {
         console.warn("Appodeal: Erreur showInterstitial:", e);
     }
 }
 
 async function showRewardedAd(onSuccess, onFail) {
-    if (!AppodealNative) { 
+    const bridge = getAppodealBridge();
+    if (!bridge) { 
         if (onSuccess) onSuccess(); 
         return; 
     }
@@ -8780,7 +8783,7 @@ async function showRewardedAd(onSuccess, onFail) {
     window._rewardFail = onFail || null;
 
     try {
-        AppodealNative.showRewarded();
+        bridge.showRewarded();
     } catch (e) {
         if (onFail) onFail();
     }
@@ -8866,6 +8869,15 @@ async function bootGame() {
             // iOS : ATT d'abord (bloquant), puis Appodeal, puis analytics
             console.log("🍎 Plateforme iOS détectée.");
             await requestATT();
+            
+            // Attendre que le bridge Swift soit injecté (polling max 5s)
+            let retries = 0;
+            while (!getAppodealBridge() && retries < 10) {
+                console.log("⏳ Attente du bridge Appodeal... (" + retries + ")");
+                await new Promise(r => setTimeout(r, 500));
+                retries++;
+            }
+            
             await initAds();
             initNativeAnalytics();
         } else {
