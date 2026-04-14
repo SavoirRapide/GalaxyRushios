@@ -8853,7 +8853,18 @@ async function initNativeAnalytics() {
 async function bootGame() {
     try {
         if (!window.Capacitor) return;
-
+// Check for app update
+try {
+    const AppUpdate = window.Capacitor.Plugins.AppUpdate;
+    if (AppUpdate) {
+        const info = await AppUpdate.getAppUpdateInfo();
+        if (info.updateAvailability === 2) { // 2 = UPDATE_AVAILABLE
+            if (confirm("A new version of Galaxy Rush is available! Update now?")) {
+                await AppUpdate.openAppStore();
+            }
+        }
+    }
+} catch(e) { console.log("Update check skipped:", e); }
         const isNative = typeof window.Capacitor.isNativePlatform === 'function'
             ? window.Capacitor.isNativePlatform()
             : window.Capacitor.isNativePlatform;
