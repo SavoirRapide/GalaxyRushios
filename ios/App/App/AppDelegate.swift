@@ -3,7 +3,6 @@ import WebKit
 import Capacitor
 import AVFoundation
 import Appodeal
-import AppTrackingTransparency
 
 @UIApplicationMain
 class AppDelegate: UIResponder, UIApplicationDelegate {
@@ -11,6 +10,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     var window: UIWindow?
     private let appodealAppKey = "23c5dc7ba8ef7a9104b712ffec317572d15682dee76aa870"
     private var appodealInitialized = false
+    private var appodealStarted = false
     private var rewardEarned = false
     private weak var activeWebView: WKWebView?
     private var bridgeInjected = false
@@ -24,9 +24,6 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
             print("Audio session error: \(error)")
         }
 
-        // Initialiser Appodeal directement au lancement (comme recommandé par la doc)
-        initAppodealAtLaunch()
-
         // Polling pour trouver la WebView
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
             self.findAndInjectBridge()
@@ -36,31 +33,28 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     }
 
     // ══════════════════════════════════════════════
-    // MARK: - Appodeal Init au lancement (ATT → SDK)
+    // MARK: - Appodeal Init (dans applicationDidBecomeActive)
     // ══════════════════════════════════════════════
 
-    private func initAppodealAtLaunch() {
-        if #available(iOS 14.5, *) {
-            ATTrackingManager.requestTrackingAuthorization { status in
-                print("📲 ATT status: \(status.rawValue)")
-                DispatchQueue.main.async {
-                    self.doAppodealInit()
-                }
+    func applicationDidBecomeActive(_ application: UIApplication) {
+        if !appodealStarted {
+            appodealStarted = true
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                self.doAppodealInit()
             }
-        } else {
-            doAppodealInit()
         }
     }
 
     private func doAppodealInit() {
         if appodealInitialized { return }
+        print("🔴 AVANT Appodeal.initialize()")
         Appodeal.setLogLevel(.verbose)
         Appodeal.setInitializationDelegate(self)
         Appodeal.initialize(
             withApiKey: appodealAppKey,
             types: [.interstitial, .rewardedVideo]
         )
-        print("🚀 Appodeal: init lancée depuis didFinishLaunchingWithOptions")
+        print("🔴 APRÈS Appodeal.initialize()")
     }
 
     // ══════════════════════════════════════════════
@@ -159,7 +153,6 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
             notifyJS(event: "onAdsInitialized", data: "true")
             return
         }
-        // Si pas encore init (cas rare), on lance
         doAppodealInit()
     }
 
@@ -206,7 +199,6 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     func applicationWillResignActive(_ application: UIApplication) {}
     func applicationDidEnterBackground(_ application: UIApplication) {}
     func applicationWillEnterForeground(_ application: UIApplication) {}
-    func applicationDidBecomeActive(_ application: UIApplication) {}
     func applicationWillTerminate(_ application: UIApplication) {}
 
     func application(_ app: UIApplication, open url: URL, options: [UIApplication.OpenURLOptionsKey: Any] = [:]) -> Bool {
