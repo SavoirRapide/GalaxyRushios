@@ -1273,129 +1273,216 @@ body.playing .menuParticles {
 #lbOverlay {
   position: fixed; inset: 0; z-index: 9000;
   width: 100vw; height: 100vh;
-  background: rgba(2, 4, 10, 0.97);
-  backdrop-filter: blur(12px);
-  display: none; align-items: center; justify-content: center;
-  opacity: 0; transition: opacity 0.3s ease;
+  background: radial-gradient(ellipse at 50% 10%, #101e38, #080e1c 50%, #040810);
+  display: none; flex-direction: column; align-items: center;
+  opacity: 0; transition: opacity 0.35s ease;
+  overflow: hidden;
 }
 #lbOverlay.visible { display: flex !important; opacity: 1; }
 
-.lb-container {
-  width: 92%; max-width: 420px; max-height: 85vh;
-  display: flex; flex-direction: column;
-  transform: scale(var(--ui-scale, 1));
-  transform-origin: center center;
+/* Floating Moonys */
+.lb-bg-moony {
+  position: absolute; pointer-events: none; border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #fff, #ddeeff, #bbccee);
+  box-shadow: 0 0 14px rgba(167,139,250,0.35); opacity: 0.15;
+  animation: lbFloatM 8s ease-in-out infinite;
 }
+.lb-bg-moony::before, .lb-bg-moony::after {
+  content: ''; position: absolute; top: 30%; width: 17%; height: 17%;
+  border-radius: 50%; background: #1a1a2e;
+}
+.lb-bg-moony::before { left: 25%; }
+.lb-bg-moony::after { right: 25%; }
+.lb-m1 { top: 5%; left: 3%; width: 28px; height: 28px; animation-duration: 10s; }
+.lb-m2 { top: 22%; right: 5%; width: 18px; height: 18px; animation-duration: 7s; animation-delay: -2s; }
+.lb-m3 { bottom: 12%; left: 7%; width: 22px; height: 22px; animation-duration: 9s; animation-delay: -4s; }
+.lb-m4 { bottom: 25%; right: 3%; width: 24px; height: 24px; animation-duration: 8s; animation-delay: -1s; }
+.lb-m5 { top: 50%; left: 2%; width: 16px; height: 16px; animation-duration: 11s; animation-delay: -5s; }
+.lb-m6 { top: 70%; right: 8%; width: 18px; height: 18px; animation-duration: 6s; animation-delay: -3s; }
+@keyframes lbFloatM {
+  0%,100% { transform: translateY(0) scale(1) rotate(0deg); }
+  33% { transform: translateY(-16px) scale(1.04) rotate(5deg); }
+  66% { transform: translateY(-8px) scale(0.98) rotate(-3deg); }
+}
+
+/* Star particles */
+.lb-star {
+  position: absolute; width: 3px; height: 3px; border-radius: 50%;
+  pointer-events: none; animation: lbSPulse 3s ease-in-out infinite;
+}
+@keyframes lbSPulse {
+  0%,100% { opacity: 0.04; transform: scale(1); }
+  50% { opacity: 0.12; transform: scale(1.2); }
+}
+
+/* Ambient glows */
+.lb-glow-top { position: absolute; top: -15%; left: 50%; transform: translateX(-50%); width: 140%; height: 45%; background: radial-gradient(ellipse, rgba(0,100,255,0.07), transparent 65%); pointer-events: none; }
+.lb-glow-bot { position: absolute; bottom: -10%; left: 50%; transform: translateX(-50%); width: 120%; height: 30%; background: radial-gradient(ellipse, rgba(0,229,255,0.04), transparent 65%); pointer-events: none; }
 
 /* Header */
 .lb-header {
-  text-align: center; padding: 15px 0 10px; position: relative;
+  text-align: center; padding: max(env(safe-area-inset-top, 12px), 12px) 20px 6px;
+  position: relative; width: 100%; z-index: 2;
+  display: flex; flex-direction: column; align-items: center;
+  flex-shrink: 0;
+}
+.lb-trophy {
+  font-size: 32px; line-height: 1;
+  animation: lbTBob 3s ease-in-out infinite;
+  filter: drop-shadow(0 0 12px rgba(255,215,0,0.5));
+}
+@keyframes lbTBob {
+  0%,100% { transform: scale(1) rotate(-1deg); }
+  50% { transform: scale(1.1) rotate(1deg); }
 }
 .lb-title {
-  font-family: var(--font-title); font-size: 22px; font-weight: 900;
-  letter-spacing: 4px; text-transform: uppercase;
-  background: linear-gradient(180deg, #ffd700 0%, #ff8c00 100%);
+  font-family: var(--font-title); font-size: clamp(16px, 4vw, 24px); font-weight: 900;
+  letter-spacing: 5px; margin-top: 2px;
+  background: linear-gradient(180deg, #ffd700 20%, #ff8c00 80%);
   -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-  filter: drop-shadow(0 2px 8px rgba(255, 215, 0, 0.3));
+  filter: drop-shadow(0 2px 6px rgba(255,200,0,0.3));
 }
 .lb-subtitle {
-  font-family: var(--font-tech); font-size: 11px; color: #5a7a9a;
-  letter-spacing: 2px; margin-top: 4px;
+  font-family: var(--font-tech); font-size: 8px; color: #2a4060;
+  letter-spacing: 3px; margin-top: 3px; text-transform: uppercase; font-weight: 600;
+}
+@media (orientation: landscape) {
+  .lb-header { flex-direction: row; gap: 12px; justify-content: center; padding: 6px 20px 4px; }
+  .lb-trophy { font-size: 24px; }
+  .lb-title { margin-top: 0; font-size: clamp(14px, 3vw, 20px); }
+  .lb-subtitle { display: none; }
 }
 .lb-close {
-  position: absolute; top: 10px; right: 0;
-  background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
-  color: rgba(255,255,255,0.5); font-size: 18px;
-  width: 36px; height: 36px; cursor: pointer;
-  display: flex; align-items: center; justify-content: center;
-  clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px);
-  transition: all 0.2s;
+  position: absolute; top: max(env(safe-area-inset-top, 12px), 12px); right: 14px;
+  background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.15);
+  color: rgba(255,255,255,0.6); font-size: 18px;
+  width: 38px; height: 38px; cursor: pointer; border-radius: 10px;
+  display: flex; align-items: center; justify-content: center; transition: all 0.2s;
+  z-index: 10;
 }
-.lb-close:hover { color: #fff; border-color: #ff4444; background: rgba(255,50,50,0.1); }
+.lb-close:hover { color: #fff; border-color: #ff4444; background: rgba(255,50,50,0.12); }
 
-/* Scrollable list */
+/* List */
 .lb-list {
-  flex: 1; overflow-y: auto; padding: 8px 0;
-  scrollbar-width: thin; scrollbar-color: rgba(100,180,255,0.2) transparent;
+  flex: 1; width: 100%; max-width: 520px; overflow-y: auto;
+  padding: 0 16px 10px; z-index: 2;
+  scrollbar-width: thin; scrollbar-color: rgba(72,136,176,0.2) transparent;
+  margin: 0 auto;
 }
-.lb-list::-webkit-scrollbar { width: 4px; }
-.lb-list::-webkit-scrollbar-thumb { background: rgba(100,180,255,0.2); border-radius: 2px; }
+.lb-list::-webkit-scrollbar { width: 3px; }
+.lb-list::-webkit-scrollbar-thumb { background: rgba(72,136,176,0.2); border-radius: 2px; }
 
-/* Row */
+/* Row base */
 .lb-row {
-  display: flex; align-items: center; gap: 10px;
-  padding: 10px 14px; margin: 3px 0;
-  background: rgba(10, 18, 35, 0.6);
-  border: 1px solid rgba(100, 180, 255, 0.08);
-  border-radius: 6px;
-  transition: all 0.15s;
+  display: flex; align-items: center; gap: clamp(6px, 2vw, 12px);
+  padding: 11px clamp(10px, 3vw, 16px); margin: 4px 0;
+  background: rgba(12,20,38,0.3);
+  border: 1px solid rgba(50,80,120,0.08);
+  border-radius: 10px; transition: all 0.2s;
 }
-.lb-row:hover { background: rgba(20, 35, 65, 0.7); border-color: rgba(100,180,255,0.15); }
-
-/* Podium rows */
-.lb-row.rank-1 {
-  background: linear-gradient(135deg, rgba(255,215,0,0.08), rgba(255,140,0,0.05));
-  border-color: rgba(255,215,0,0.25);
-}
-.lb-row.rank-2 {
-  background: linear-gradient(135deg, rgba(192,192,192,0.06), rgba(150,150,150,0.04));
-  border-color: rgba(192,192,192,0.2);
-}
-.lb-row.rank-3 {
-  background: linear-gradient(135deg, rgba(205,127,50,0.06), rgba(180,100,30,0.04));
-  border-color: rgba(205,127,50,0.2);
+@media (orientation: landscape) {
+  .lb-row { padding: 7px clamp(8px, 2vw, 14px); margin: 2px 0; }
+  .lb-row.rank-1, .lb-row.rank-2, .lb-row.rank-3 { padding: 9px 16px; }
+  .lb-separator { padding: 8px 0 5px; font-size: 10px; }
+  .lb-footer { padding: 5px 0; }
+  .lb-footer-info { font-size: 11px; }
 }
 
-/* Current player highlight */
+/* TIER COLORS — each rank unique */
+.lb-row.rank-1 { background: linear-gradient(135deg, rgba(255,215,0,0.22), rgba(255,160,0,0.10), rgba(255,215,0,0.18)); border-color: rgba(255,215,0,0.6); border-radius: 14px; padding: 16px 20px; animation: lbShim1 3s ease-in-out infinite; }
+.lb-row.rank-2 { background: linear-gradient(135deg, rgba(200,215,240,0.15), rgba(160,180,210,0.06), rgba(200,215,240,0.12)); border-color: rgba(200,215,240,0.45); border-radius: 14px; padding: 14px 20px; animation: lbShim2 3.5s ease-in-out infinite; }
+.lb-row.rank-3 { background: linear-gradient(135deg, rgba(220,150,60,0.16), rgba(180,110,40,0.06), rgba(220,150,60,0.12)); border-color: rgba(220,150,60,0.45); border-radius: 14px; padding: 13px 20px; animation: lbShim3 4s ease-in-out infinite; }
+.lb-row.rank-4 { background: linear-gradient(135deg, rgba(0,220,180,0.09), rgba(0,160,140,0.03)); border-color: rgba(0,220,180,0.20); }
+.lb-row.rank-5 { background: linear-gradient(135deg, rgba(90,140,255,0.09), rgba(50,100,220,0.03)); border-color: rgba(90,140,255,0.20); }
+.lb-row.rank-6 { background: linear-gradient(135deg, rgba(200,90,255,0.09), rgba(150,50,220,0.03)); border-color: rgba(200,90,255,0.18); }
+.lb-row.rank-7 { background: linear-gradient(135deg, rgba(255,90,140,0.09), rgba(220,50,100,0.03)); border-color: rgba(255,90,140,0.18); }
+.lb-row.rank-8 { background: linear-gradient(135deg, rgba(255,180,50,0.08), rgba(220,140,20,0.03)); border-color: rgba(255,180,50,0.15); }
+.lb-row.rank-9 { background: linear-gradient(135deg, rgba(50,200,255,0.08), rgba(20,150,220,0.03)); border-color: rgba(50,200,255,0.15); }
+.lb-row.rank-10 { background: linear-gradient(135deg, rgba(160,255,90,0.08), rgba(110,200,50,0.03)); border-color: rgba(160,255,90,0.14); }
+
+@keyframes lbShim1 { 0%,100%{box-shadow:0 0 30px rgba(255,215,0,.12)} 50%{box-shadow:0 0 55px rgba(255,215,0,.24),0 0 80px rgba(255,160,0,.08)} }
+@keyframes lbShim2 { 0%,100%{box-shadow:0 0 20px rgba(200,215,240,.08)} 50%{box-shadow:0 0 38px rgba(200,215,240,.18)} }
+@keyframes lbShim3 { 0%,100%{box-shadow:0 0 18px rgba(220,150,60,.08)} 50%{box-shadow:0 0 32px rgba(220,150,60,.16)} }
+
+/* ME */
 .lb-row.lb-me {
-  background: linear-gradient(135deg, rgba(0,200,255,0.1), rgba(0,100,255,0.06));
-  border-color: rgba(0,200,255,0.35);
-  box-shadow: 0 0 15px rgba(0,200,255,0.08);
+  background: linear-gradient(135deg, rgba(0,229,255,0.18), rgba(0,80,200,0.08));
+  border-color: rgba(0,229,255,0.55);
+  box-shadow: 0 0 30px rgba(0,229,255,0.15), inset 0 0 25px rgba(0,229,255,0.04);
+  animation: lbPulseMe 2.5s ease-in-out infinite;
+}
+@keyframes lbPulseMe {
+  0%,100% { box-shadow: 0 0 20px rgba(0,229,255,0.1); border-color: rgba(0,229,255,0.45); }
+  50% { box-shadow: 0 0 40px rgba(0,229,255,0.22); border-color: rgba(0,229,255,0.7); }
 }
 
+/* Rank number */
 .lb-rank {
-  font-family: var(--font-title); font-size: 16px; font-weight: 900;
-  min-width: 32px; text-align: center; color: #5a7a9a;
+  font-family: var(--font-title); font-size: 15px; font-weight: 900;
+  min-width: clamp(28px, 8vw, 38px); text-align: center; color: #2a4060;
 }
-.rank-1 .lb-rank { color: #ffd700; text-shadow: 0 0 8px rgba(255,215,0,0.4); }
-.rank-2 .lb-rank { color: #c0c0c0; text-shadow: 0 0 6px rgba(192,192,192,0.3); }
-.rank-3 .lb-rank { color: #cd7f32; text-shadow: 0 0 6px rgba(205,127,50,0.3); }
+.rank-1 .lb-rank { color: #ffd700; text-shadow: 0 0 14px rgba(255,215,0,0.5); font-size: clamp(18px, 4vw, 24px); }
+.rank-2 .lb-rank { color: #c8d4e8; text-shadow: 0 0 8px rgba(200,210,230,0.4); font-size: clamp(16px, 3.5vw, 21px); }
+.rank-3 .lb-rank { color: #d89030; text-shadow: 0 0 8px rgba(216,144,48,0.4); font-size: clamp(15px, 3.5vw, 20px); }
+.rank-4 .lb-rank { color: #40d0b8; } .rank-5 .lb-rank { color: #5080e0; }
+.rank-6 .lb-rank { color: #a050d8; } .rank-7 .lb-rank { color: #e05080; }
+.rank-8 .lb-rank { color: #d09020; } .rank-9 .lb-rank { color: #2898d0; }
+.rank-10 .lb-rank { color: #70c038; }
 
-.lb-medal { font-size: 18px; min-width: 24px; text-align: center; }
+/* Medal */
+.lb-medal { font-size: 18px; min-width: clamp(24px, 6vw, 34px); text-align: center; }
+.rank-1 .lb-medal { font-size: clamp(22px, 5vw, 30px); filter: drop-shadow(0 0 8px rgba(255,215,0,0.7)); }
+.rank-2 .lb-medal { font-size: clamp(20px, 4vw, 26px); }
+.rank-3 .lb-medal { font-size: clamp(18px, 4vw, 24px); }
 
+/* Name */
 .lb-name {
-  flex: 1; font-family: var(--font-tech); font-size: 15px; font-weight: 700;
-  color: #c8dff0; letter-spacing: 0.5px;
+  flex: 1; font-family: var(--font-tech); font-size: clamp(12px, 3vw, 15px); font-weight: 700;
+  color: #5878a0; letter-spacing: 0.5px;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-.lb-me .lb-name { color: #00e5ff; }
+.rank-1 .lb-name { color: #fff; font-size: clamp(14px, 3.5vw, 17px); letter-spacing: 1px; }
+.rank-2 .lb-name { color: #e8eef6; } .rank-3 .lb-name { color: #f0dcc0; }
+.rank-4 .lb-name { color: #a8e0d8; } .rank-5 .lb-name { color: #a8c0f0; }
+.rank-6 .lb-name { color: #d0b0f0; } .rank-7 .lb-name { color: #f0b0c8; }
+.rank-8 .lb-name { color: #e0c8a0; } .rank-9 .lb-name { color: #a8d0e8; }
+.rank-10 .lb-name { color: #c0e0a8; }
+.lb-me .lb-name { color: #00e5ff; font-weight: 900; }
 
+/* Score — DISTINCT from name */
 .lb-score {
-  font-family: var(--font-title); font-size: 15px; font-weight: 700;
-  color: #8ab4d8; letter-spacing: 1px;
+  font-family: var(--font-title); font-size: clamp(12px, 3vw, 15px); font-weight: 800;
+  color: #304868; letter-spacing: 1.5px;
 }
-.lb-me .lb-score { color: #00e5ff; text-shadow: 0 0 6px rgba(0,229,255,0.3); }
+.rank-1 .lb-score { color: #ffd700; font-size: clamp(16px, 4vw, 20px); text-shadow: 0 0 10px rgba(255,215,0,0.5); }
+.rank-2 .lb-score { color: #b8c8e0; font-size: clamp(13px, 3vw, 17px); }
+.rank-3 .lb-score { color: #e8a848; font-size: clamp(13px, 3vw, 17px); }
+.rank-4 .lb-score { color: #00e8c8; } .rank-5 .lb-score { color: #6898ff; }
+.rank-6 .lb-score { color: #c070ff; } .rank-7 .lb-score { color: #ff6098; }
+.rank-8 .lb-score { color: #f0b030; } .rank-9 .lb-score { color: #38c0ff; }
+.rank-10 .lb-score { color: #90e050; }
+.lb-me .lb-score { color: #7df9ff; text-shadow: 0 0 12px rgba(0,229,255,0.5); font-size: clamp(14px, 3.5vw, 17px); }
 
-/* Separator between top 10 and "your zone" */
+/* Separator */
 .lb-separator {
-  text-align: center; padding: 8px 0;
-  font-family: var(--font-tech); font-size: 10px;
-  color: #3a5a7a; letter-spacing: 3px;
+  text-align: center; padding: 18px 0 12px;
+  font-family: var(--font-title); font-size: clamp(10px, 2.5vw, 12px); font-weight: 900;
+  color: #4888b0; letter-spacing: 5px;
+  display: flex; align-items: center; justify-content: center; gap: 14px;
 }
 .lb-separator::before, .lb-separator::after {
-  content: ''; display: inline-block; width: 40px; height: 1px;
-  background: rgba(100,180,255,0.15); vertical-align: middle; margin: 0 10px;
+  content: \'\'; display: inline-block; flex: 1; max-width: 80px; height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(72,136,176,0.4), transparent);
 }
 
-/* Loading state */
+/* Loading */
 .lb-loading {
-  text-align: center; padding: 40px 0;
-  font-family: var(--font-tech); font-size: 13px; color: #4a6a8a;
-  letter-spacing: 2px;
+  text-align: center; padding: 60px 0;
+  font-family: var(--font-tech); font-size: 13px; color: #3a5a7a; letter-spacing: 2px;
 }
 .lb-loading::after {
-  content: ''; display: block; margin: 12px auto 0;
-  width: 30px; height: 30px; border: 2px solid rgba(0,200,255,0.1);
+  content: \'\'; display: block; margin: 16px auto 0;
+  width: 32px; height: 32px; border: 2px solid rgba(0,200,255,0.08);
   border-top-color: #00c8ff; border-radius: 50%;
   animation: lbSpin 0.8s linear infinite;
 }
@@ -1403,11 +1490,15 @@ body.playing .menuParticles {
 
 /* Footer */
 .lb-footer {
-  padding: 10px 0 5px; text-align: center;
+  padding: 10px 0 max(env(safe-area-inset-bottom, 10px), 10px);
+  text-align: center; width: 100%; z-index: 2;
+  background: linear-gradient(0deg, rgba(4,8,16,0.8), transparent);
+  border-top: 1px solid rgba(72,136,176,0.08);
+  flex-shrink: 0;
 }
 .lb-footer-info {
-  font-family: var(--font-tech); font-size: 10px; color: #3a5a7a;
-  letter-spacing: 1px;
+  font-family: var(--font-title); font-size: clamp(11px, 2.5vw, 14px);
+  color: #3880a8; letter-spacing: 3px; font-weight: 700;
 }
 
 /* =========================================================================
@@ -1785,18 +1876,33 @@ body.playing .menuParticles {
      🏆 FIREBASE LEADERBOARD OVERLAY
 ========================================================= -->
 <div id="lbOverlay">
-  <div class="lb-container">
-    <div class="lb-header">
-      <div class="lb-title">🏆 TOP PLAYERS</div>
-      <div class="lb-subtitle">GALAXY RUSH GLOBAL RANKINGS</div>
-      <div class="lb-close" onclick="closeLB()">✕</div>
-    </div>
-    <div class="lb-list" id="lbList">
-      <div class="lb-loading">LOADING RANKINGS...</div>
-    </div>
-    <div class="lb-footer">
-      <div class="lb-footer-info" id="lbFooterInfo"></div>
-    </div>
+  <!-- Mini Moonys -->
+  <div class="lb-bg-moony lb-m1"></div>
+  <div class="lb-bg-moony lb-m2"></div>
+  <div class="lb-bg-moony lb-m3"></div>
+  <div class="lb-bg-moony lb-m4"></div>
+  <div class="lb-bg-moony lb-m5"></div>
+  <div class="lb-bg-moony lb-m6"></div>
+  <!-- Ambient -->
+  <div class="lb-glow-top"></div>
+  <div class="lb-glow-bot"></div>
+
+  <!-- Header -->
+  <div class="lb-header">
+    <div class="lb-trophy">🏆</div>
+    <div class="lb-title">TOP PLAYERS</div>
+    <div class="lb-subtitle">GALAXY RUSH — GLOBAL RANKINGS</div>
+    <div class="lb-close" onclick="closeLB()">✕</div>
+  </div>
+
+  <!-- List -->
+  <div class="lb-list" id="lbList">
+    <div class="lb-loading">LOADING RANKINGS...</div>
+  </div>
+
+  <!-- Footer -->
+  <div class="lb-footer">
+    <div class="lb-footer-info" id="lbFooterInfo"></div>
   </div>
 </div>
 
@@ -9286,13 +9392,14 @@ const LB_MEDALS = { 1: "🥇", 2: "🥈", 3: "🥉" };
 
 function buildLBRow(rank, pseudo, score, isMe) {
     const medal = LB_MEDALS[rank] || "";
-    const rankClass = rank <= 3 ? ` rank-${rank}` : "";
+    const rankClass = rank <= 10 ? ` rank-${rank}` : "";
     const meClass = isMe ? " lb-me" : "";
+    const diamondIcon = (!medal && rank <= 10) ? "◆" : "";
 
     return `
         <div class="lb-row${rankClass}${meClass}">
             <div class="lb-rank">${rank}</div>
-            <div class="lb-medal">${medal}</div>
+            <div class="lb-medal">${medal || diamondIcon}</div>
             <div class="lb-name">${escLB(pseudo)}</div>
             <div class="lb-score">${score.toLocaleString()}</div>
         </div>
@@ -9352,24 +9459,42 @@ async function openLB() {
             if (p.uid === fbUserId) myRankInTop = i + 1;
         });
 
-        // 2. Construire le HTML du Top 10
-        let html = "";
+        // 2. Build HTML
+        let myZoneHtml = "";
+        let topHtml = "";
+
+        // Build top rows
         topPlayers.forEach(p => {
-            html += buildLBRow(p.rank, p.pseudo, p.score, p.uid === fbUserId);
+            topHtml += buildLBRow(p.rank, p.pseudo, p.score, p.uid === fbUserId);
         });
 
-        // 3. Si le joueur n'est PAS dans le top 10, trouver sa position
+        // 3. If player is IN top 10, load more players (up to 30 total)
+        if (myRankInTop > 0) {
+            try {
+                const moreSnap = await fbDb.collection("leaderboard")
+                    .orderBy("score", "desc")
+                    .limit(30)
+                    .get();
+                // Rebuild with all 30
+                topHtml = "";
+                let rank = 1;
+                moreSnap.forEach(doc => {
+                    const d = doc.data();
+                    topHtml += buildLBRow(rank, d.pseudo || "???", d.score || 0, doc.id === fbUserId);
+                    rank++;
+                });
+            } catch(e) { /* keep top 10 if query fails */ }
+            if (footer) footer.textContent = (_t.lbYourRank || "YOUR RANK:") + ` #${myRankInTop}`;
+        }
+
+        // 4. If player is NOT in top 10, find their position
         if (myRankInTop === -1 && fbUserId) {
-            // Récupérer le score du joueur
             const myDoc = await fbDb.collection("leaderboard").doc(fbUserId).get();
 
             if (myDoc.exists) {
                 const myScore = myDoc.data().score || 0;
                 const myPseudo = myDoc.data().pseudo || fbPseudo || "???";
 
-                // Compter combien de joueurs ont un score supérieur = mon rang
-                // Utilise count() au lieu de get() — ne télécharge PAS les documents,
-                // juste le nombre. Beaucoup moins cher en reads Firebase.
                 let myRank;
                 try {
                     const countSnap = await fbDb.collection("leaderboard")
@@ -9378,63 +9503,46 @@ async function openLB() {
                         .get();
                     myRank = countSnap.data().count + 1;
                 } catch (e) {
-                    // Fallback si count() pas supporté (vieille version SDK)
                     const aboveSnap = await fbDb.collection("leaderboard")
                         .where("score", ">", myScore)
                         .get();
                     myRank = aboveSnap.size + 1;
                 }
 
-                // Récupérer les ~5 joueurs au-dessus de moi
                 const aboveMe = await fbDb.collection("leaderboard")
                     .orderBy("score", "asc")
                     .where("score", ">", myScore)
-                    .limit(5)
+                    .limit(3)
                     .get();
 
                 const aboveList = [];
                 aboveMe.forEach(doc => {
                     const d = doc.data();
-                    aboveList.push({
-                        uid: doc.id,
-                        pseudo: d.pseudo || "???",
-                        score: d.score || 0
-                    });
+                    aboveList.push({ uid: doc.id, pseudo: d.pseudo || "???", score: d.score || 0 });
                 });
-                aboveList.reverse(); // Plus haut score en premier
+                aboveList.reverse();
 
-                // Récupérer les ~5 joueurs en-dessous de moi
                 const belowMe = await fbDb.collection("leaderboard")
                     .orderBy("score", "desc")
                     .where("score", "<", myScore)
-                    .limit(5)
+                    .limit(3)
                     .get();
 
                 const belowList = [];
                 belowMe.forEach(doc => {
                     const d = doc.data();
-                    belowList.push({
-                        uid: doc.id,
-                        pseudo: d.pseudo || "???",
-                        score: d.score || 0
-                    });
+                    belowList.push({ uid: doc.id, pseudo: d.pseudo || "???", score: d.score || 0 });
                 });
 
-                // Ajouter le séparateur + la zone du joueur
-                html += '<div class="lb-separator">' + (_t.lbYourZone || "• • YOUR ZONE • •") + '</div>';
-
-                // Joueurs au-dessus
+                // MY ZONE — shown FIRST
+                myZoneHtml += '<div class="lb-separator">' + (_t.lbYourZone || "• • YOUR ZONE • •") + '</div>';
                 aboveList.forEach((p, i) => {
                     const r = myRank - (aboveList.length - i);
-                    html += buildLBRow(r, p.pseudo, p.score, false);
+                    myZoneHtml += buildLBRow(r, p.pseudo, p.score, false);
                 });
-
-                // MOI
-                html += buildLBRow(myRank, myPseudo, myScore, true);
-
-                // Joueurs en-dessous
+                myZoneHtml += buildLBRow(myRank, myPseudo, myScore, true);
                 belowList.forEach((p, i) => {
-                    html += buildLBRow(myRank + 1 + i, p.pseudo, p.score, false);
+                    myZoneHtml += buildLBRow(myRank + 1 + i, p.pseudo, p.score, false);
                 });
 
                 if (footer) footer.textContent = (_t.lbYourRank || "YOUR RANK:") + ` #${myRank}`;
@@ -9442,15 +9550,30 @@ async function openLB() {
                 if (footer) footer.textContent = (_t.lbPlayFirst || "PLAY A GAME TO APPEAR HERE");
             }
         } else if (myRankInTop > 0) {
-            if (footer) footer.textContent = (_t.lbYourRank || "YOUR RANK:") + ` #${myRankInTop}`;
+            // Already handled above — top 30 loaded
         }
 
-        // Si aucun joueur du tout
+        // Assemble: MY ZONE first (if exists), then TOP section
+        let html = "";
+        if (myZoneHtml) {
+            html = myZoneHtml + '<div class="lb-separator">🏆 TOP 10</div>' + topHtml;
+        } else {
+            html = topHtml;
+        }
+
         if (topPlayers.length === 0) {
             html = '<div class="lb-loading" style="color:#5a7a9a;">' + (_t.lbNoPlayers || "NO PLAYERS YET — BE THE FIRST!") + '</div>';
         }
 
         list.innerHTML = html;
+
+        // Auto-scroll to player's row
+        requestAnimationFrame(() => {
+            const myRow = list.querySelector('.lb-row.lb-me');
+            if (myRow) {
+                myRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        });
 
     } catch (e) {
         console.warn("🔥 Leaderboard fetch fail:", e);
