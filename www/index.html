@@ -336,6 +336,53 @@ body.comboActive #combo {
 .statBox.coins .statValue { color: var(--col-gold); text-shadow: 0 0 10px rgba(255, 180, 0, 0.4); }
 
 /* =========================================================================
+   👨‍🚀 PILOT CARD (Menu profile card)
+========================================================================= */
+
+#pilotCard {
+  position: absolute;
+  top: max(20px, env(safe-area-inset-top));
+  left: max(5%, env(safe-area-inset-left));
+  z-index: 12;
+  background: linear-gradient(180deg, rgba(20,30,50,0.9), rgba(5,10,20,0.95));
+  border: 1px solid rgba(100,180,255,0.2);
+  border-radius: 8px;
+  padding: 6px 12px;
+  box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+  transform: scale(var(--ui-scale, 1));
+  transform-origin: top left;
+  pointer-events: none;
+  display: flex; align-items: center; gap: 10px;
+}
+.pc-name {
+  font-family: var(--font-title); font-weight: 900;
+  font-size: 14px; color: #00e5ff; letter-spacing: 2px;
+  text-shadow: 0 0 8px rgba(0,229,255,0.3);
+  line-height: 1.1;
+}
+.pc-rank {
+  font-family: var(--font-title); font-weight: 700;
+  font-size: 10px; color: rgba(255,215,0,0.85);
+  letter-spacing: 1px;
+}
+.pc-div {
+  width: 1px; height: 28px;
+  background: rgba(100,180,255,0.15);
+}
+.pc-stat {
+  display: flex; flex-direction: column; align-items: center;
+}
+.pc-val {
+  font-family: var(--font-title); font-weight: 700;
+  font-size: 15px; color: #fff; line-height: 1.1;
+}
+.pc-lbl {
+  font-family: var(--font-tech); font-weight: 700;
+  font-size: 8px; color: rgba(150,200,255,0.5);
+  letter-spacing: 1.5px; text-transform: uppercase;
+}
+
+/* =========================================================================
    🎁 DAILY GIFT POPUP (VERSION SLIM & MOBILE SAFE & SCALABLE)
 ========================================================================= */
 
@@ -1484,6 +1531,19 @@ body.playing .menuParticles {
     <div class="statBox coins">
       <div class="statLabel">COINS</div>
       <div class="statValue" id="menuCoins">0</div>
+    </div>
+  </div>
+
+  <!-- PILOT PROFILE CARD -->
+  <div id="pilotCard">
+    <div>
+      <div class="pc-name" id="pcName">PILOT</div>
+      <div class="pc-rank" id="pcRank">#—</div>
+    </div>
+    <div class="pc-div"></div>
+    <div class="pc-stat">
+      <span class="pc-val" id="pcGames">0</span>
+      <span class="pc-lbl" id="pcGamesLbl">GAMES</span>
     </div>
   </div>
 
@@ -3370,6 +3430,9 @@ async function handleGameOver() {
     Player.bestScore = bestScore;
     if (typeof Player.save === "function") Player.save();
 
+    // 📊 Lifetime stats (cartes pilote)
+    if (typeof trackGameStats === "function") trackGameStats(coinsCollected || 0);
+
     if (typeof updateMenuStats === "function") updateMenuStats();
 
     // ⚡ FIX UX : On remplit l'UI Game Over TOUT DE SUITE 
@@ -3646,7 +3709,7 @@ function update(delta, ts){
     for (let i = particles.length - 1; i >= 0; i--){
       const p = particles[i];
       p.x += p.vx; p.y += p.vy; p.vy += 0.02; p.age += delta;
-      if (p.age >= p.life) particles.splice(i, 1);
+      if (p.age >= p.life) { particles[i] = particles[particles.length-1]; particles.pop(); }
     }
     if (shockwave){
       shockwave.r += 6; shockwave.alpha *= 0.95;
@@ -3749,7 +3812,7 @@ function update(delta, ts){
     // Despawn
     const rightEdge = (ob.kind === "rotbar") ? (ob.cx + ob.len) : (ob.x + (ob.width||ob.r||0));
     if (rightEdge < DESPAWN_X){ 
-        obstacles.splice(i, 1); 
+        obstacles[i] = obstacles[obstacles.length-1]; obstacles.pop();
         continue; 
     }
 
@@ -3780,11 +3843,11 @@ function update(delta, ts){
   for (let i = coins.length - 1; i >= 0; i--){
     const c = coins[i];
     c.x -= sp;
-    if (c.x < -100){ coins.splice(i, 1); continue; }
+    if (c.x < -100){ coins[i]=coins[coins.length-1]; coins.pop(); continue; }
     
     const dx = cxp - c.x, dy = cyp - c.y;
     if (dx*dx + dy*dy <= (c.r + 20)*(c.r + 20)){
-      coins.splice(i, 1); coinsCollected++;
+      coins[i]=coins[coins.length-1]; coins.pop(); coinsCollected++;
       combo = ((now - lastCoinTime) < 1600) ? (combo + 1) : 1;
       lastCoinTime = now; addOverdrive(1);
       score += (overdriveActive ? 400 : 200) + (combo * 20);
@@ -3946,7 +4009,7 @@ function updateSpaceJourney(score, delta) {
     for (let i = bgJourney.distantPlanets.length - 1; i >= 0; i--) {
         let p = bgJourney.distantPlanets[i];
         p.x -= p.speed * speed; 
-        if (p.x < -100) bgJourney.distantPlanets.splice(i, 1);
+        if (p.x < -100) { bgJourney.distantPlanets[i] = bgJourney.distantPlanets[bgJourney.distantPlanets.length-1]; bgJourney.distantPlanets.pop(); }
     }
 
     // --- C. ÉTOILES FILANTES ---
@@ -3963,7 +4026,7 @@ function updateSpaceJourney(score, delta) {
     for (let i = bgJourney.shootingStars.length - 1; i >= 0; i--) {
         let s = bgJourney.shootingStars[i];
         s.x += s.vx * speed; s.y += s.vy * speed; s.life -= 0.02;
-        if (s.life <= 0) bgJourney.shootingStars.splice(i, 1);
+        if (s.life <= 0) { bgJourney.shootingStars[i] = bgJourney.shootingStars[bgJourney.shootingStars.length-1]; bgJourney.shootingStars.pop(); }
     }
 
 // --- D. WARP DOUX (Optimisé & Parallax Fixé) ---
@@ -3985,7 +4048,7 @@ function updateSpaceJourney(score, delta) {
         let w = bgJourney.warpLines[i];
         w.x -= w.s * speed;
         if (w.a < w.ta) w.a += 0.02; // Apparition en fondu doux
-        if (w.x + w.w < -100) bgJourney.warpLines.splice(i, 1);
+        if (w.x + w.w < -100) { bgJourney.warpLines[i] = bgJourney.warpLines[bgJourney.warpLines.length-1]; bgJourney.warpLines.pop(); }
     }}
 // --- 3. DESSIN (LUNE QUI TE REGARDE + PERFORMANCE) ---
 function drawSpaceJourney(ctx) {
@@ -4247,7 +4310,8 @@ function updateAndDrawParticles(ctx) {
         const p = activeParticles[i];
         p.update();
         if (p.life <= 0) {
-            activeParticles.splice(i, 1);
+            activeParticles[i] = activeParticles[activeParticles.length-1];
+            activeParticles.pop();
         } else {
             p.draw(ctx);
         }
@@ -4256,6 +4320,7 @@ function updateAndDrawParticles(ctx) {
 
 // FONCTION SPAWNER (À appeler quand JetOn = true)
 function spawnJetParticles(x, y, skinId) {
+    if (IS_LOW_END) return; // Skip jet particles on old phones
     // Détermine le type de particule selon le skin
     let type = "fire";
     if (skinId === "neon") type = "neon";
@@ -4289,7 +4354,7 @@ function drawPlayerParticles(ctx){
     if (p.life <= 0){
       p.active = false;
       p._inList = false;
-      arr.splice(i,1);
+      arr[i] = arr[arr.length-1]; arr.pop();
       continue;
     }
 
@@ -4297,16 +4362,17 @@ function drawPlayerParticles(ctx){
     if (lifeRatio <= 0.02){
       p.active = false;
       p._inList = false;
-      arr.splice(i,1);
+      arr[i] = arr[arr.length-1]; arr.pop();
       continue;
     }
 
     ctx.globalAlpha = lifeRatio;
 
-    // ⚡ OPTIMISATION : Pas de shadowBlur sur mobile (trop lourd)
+    // ⚡ OPTIMISATION : Glow sprite cache (remplace shadowBlur mobile)
     if (allowGlow && p.glow > 0){
-      ctx.shadowColor = p.color;
-      ctx.shadowBlur  = p.glow * fxCalm;
+      const glowImg = getGlow(p.color, Math.ceil(p.glow * fxCalm * 2));
+      const gs = glowImg.width / 2;
+      ctx.drawImage(glowImg, p.x - gs, p.y - gs);
     } else {
       ctx.shadowBlur = 0;
     }
@@ -7060,6 +7126,34 @@ let fadeH = 0;
 
 let coinGradientCache = null;
 let coinGradR = 0;
+
+// === GLOW SPRITE CACHE (replaces shadowBlur everywhere) ===
+const _glowCache = {};
+function getGlow(color, size) {
+  const k = color + '|' + size;
+  if (_glowCache[k]) return _glowCache[k];
+  const c = document.createElement('canvas');
+  c.width = c.height = size * 2;
+  const x = c.getContext('2d');
+  const g = x.createRadialGradient(size, size, 0, size, size, size);
+  g.addColorStop(0, color);
+  g.addColorStop(1, 'rgba(0,0,0,0)');
+  x.fillStyle = g;
+  x.fillRect(0, 0, size * 2, size * 2);
+  _glowCache[k] = c;
+  return c;
+}
+
+// === LOW-END DETECTION (only when phone is really dying) ===
+let IS_LOW_END = false;
+let _lowEndFrames = 0;
+function checkLowEnd() {
+  const f = FXQuality.fps();
+  // Only activate if fps under 30 for 20+ checks (~2.4 seconds)
+  if (f < 30) { _lowEndFrames++; } else { _lowEndFrames = Math.max(0, _lowEndFrames - 3); }
+  IS_LOW_END = _lowEndFrames > 20;
+}
+
 function draw() {
 
   /* =================================================
@@ -7248,6 +7342,7 @@ function loop(ts) {
     if (typeof FXQuality !== 'undefined') {
         FXQuality.update(renderTime);
         updateFXState();
+        checkLowEnd();
     }
     fxTick = 0;
   }
@@ -7532,6 +7627,9 @@ function goToMenu(){
 
   // 📺 Change l'état de l'UI
   setUIState("menu");
+
+  // 👨‍🚀 Refresh carte pilote (stats lifetime + rang)
+  if (typeof updatePilotCard === "function") updatePilotCard();
 }
 
 
@@ -7692,6 +7790,58 @@ function updateMenuStats(){
   if (sc) sc.textContent = coins.toLocaleString();
   if (mb) mb.textContent = best.toLocaleString();
   if (mc) mc.textContent = coins.toLocaleString();
+}
+
+/* ================= LIFETIME STATS ================= */
+function trackGameStats(coinsThisGame) {
+  const g = Number(localStorage.getItem("gr_totalGames") || 0) + 1;
+  const c = Number(localStorage.getItem("gr_totalCoins") || 0) + coinsThisGame;
+  const d = Number(localStorage.getItem("gr_totalDeaths") || 0) + 1;
+  localStorage.setItem("gr_totalGames", g);
+  localStorage.setItem("gr_totalCoins", c);
+  localStorage.setItem("gr_totalDeaths", d);
+}
+
+/* ================= PILOT CARD ================= */
+async function updatePilotCard() {
+  const nameEl = document.getElementById("pcName");
+  const rankEl = document.getElementById("pcRank");
+  const gamesEl = document.getElementById("pcGames");
+
+  // Name
+  const pseudo = localStorage.getItem("fb_pseudo") || "PILOT";
+  if (nameEl) nameEl.textContent = pseudo;
+
+  // Games played
+  if (gamesEl) gamesEl.textContent = Number(localStorage.getItem("gr_totalGames") || 0).toLocaleString();
+
+  // i18n label
+  const _t = (typeof i18n !== "undefined") ? i18n : {};
+  const gLbl = document.getElementById("pcGamesLbl");
+  if (gLbl) gLbl.textContent = _t.pcGames || "GAMES";
+
+  // Rank (fetch from Firebase if available)
+  if (rankEl) {
+    if (fbReady && fbUserId) {
+      try {
+        const myDoc = await fbDb.collection("leaderboard").doc(fbUserId).get();
+        if (myDoc.exists) {
+          const myScore = myDoc.data().score || 0;
+          try {
+            const countSnap = await fbDb.collection("leaderboard").where("score", ">", myScore).count().get();
+            rankEl.textContent = "#" + (countSnap.data().count + 1);
+          } catch(e) {
+            const aboveSnap = await fbDb.collection("leaderboard").where("score", ">", myScore).get();
+            rankEl.textContent = "#" + (aboveSnap.size + 1);
+          }
+        } else {
+          rankEl.textContent = "#—";
+        }
+      } catch(e) { rankEl.textContent = "#—"; }
+    } else {
+      rankEl.textContent = "#—";
+    }
+  }
 }
 
 
@@ -8396,10 +8546,23 @@ document.addEventListener("DOMContentLoaded", () => {
           // avant d'arriver au menu (meilleur UX que pendant le game over)
           if (fbReady && !fbPseudo && !localStorage.getItem("fb_pseudo")) {
               await askPseudo();
+          } else if (!fbReady && !localStorage.getItem("fb_pseudo")) {
+              // Firebase pas encore prêt (vieux téléphone) → attendre en arrière-plan
+              // puis montrer le popup dès que c'est prêt
+              (async () => {
+                  let tries = 0;
+                  while (!fbReady && tries < 20) { await new Promise(r => setTimeout(r, 500)); tries++; }
+                  if (fbReady && !fbPseudo && !localStorage.getItem("fb_pseudo")) {
+                      await askPseudo();
+                  }
+                  // Refresh carte pilote une fois Firebase prêt (pour afficher le rang)
+                  if (typeof updatePilotCard === "function") updatePilotCard();
+              })();
           }
 
           setUIState("menu");
           globalInputLock = false;
+          if (typeof updatePilotCard === "function") updatePilotCard();
       }, 600);
 
     }, { passive: false });
@@ -9066,6 +9229,9 @@ async function confirmPseudo() {
     if (popup) popup.classList.remove("visible");
     if (btn) btn.disabled = false;
 
+    // 👨‍🚀 Refresh carte pilote avec le nouveau pseudo
+    if (typeof updatePilotCard === "function") updatePilotCard();
+
     if (pseudoResolve) {
         pseudoResolve(fbPseudo);
         pseudoResolve = null;
@@ -9417,7 +9583,8 @@ const LANGS = {
         comeBack: "COME BACK IN ${t}", resetIn: "RESET IN: ${t}", noMoreSpins: "NO MORE SPINS TODAY!",
         equipped: "EQUIPPED", selected: "SELECTED", owned: "OWNED",
         equip: "EQUIP", unlock: "UNLOCK", needCoins: "NEED COINS",
-        ready: "READY?", tapStart: "TAP TO START"
+        ready: "READY?", tapStart: "TAP TO START",
+        pcGames: "GAMES", pcTotalCoins: "TOTAL ★", pcDeaths: "DEATHS"
     },
     fr: {
         tapToStart: "TOUCHER POUR JOUER", systemBoot: "DÉMARRAGE", initializing: "INITIALISATION...",
@@ -9446,7 +9613,8 @@ const LANGS = {
         comeBack: "REVIENS DANS ${t}", resetIn: "RESET : ${t}", noMoreSpins: "PLUS DE TOURS AUJOURD'HUI !",
         equipped: "ÉQUIPÉ", selected: "SÉLECTIONNÉ", owned: "POSSÉDÉ",
         equip: "ÉQUIPER", unlock: "DÉBLOQUER", needCoins: "PAS ASSEZ",
-        ready: "PRÊT ?", tapStart: "TOUCHER POUR JOUER"
+        ready: "PRÊT ?", tapStart: "TOUCHER POUR JOUER",
+        pcGames: "PARTIES", pcTotalCoins: "TOTAL ★", pcDeaths: "MORTS"
     },
     es: {
         tapToStart: "TOCA PARA JUGAR", systemBoot: "INICIANDO", initializing: "CARGANDO...",
@@ -9471,7 +9639,8 @@ const LANGS = {
         comeBack: "VUELVE EN ${t}", resetIn: "RESET: ${t}", noMoreSpins: "¡SIN GIROS HOY!",
         equipped: "EQUIPADO", selected: "SELECCIONADO", owned: "OBTENIDO",
         equip: "EQUIPAR", unlock: "DESBLOQUEAR", needCoins: "FALTAN MONEDAS",
-        ready: "¿LISTO?", tapStart: "TOCA PARA JUGAR"
+        ready: "¿LISTO?", tapStart: "TOCA PARA JUGAR",
+        pcGames: "PARTIDAS", pcTotalCoins: "TOTAL ★", pcDeaths: "MUERTES"
     },
     it: {
         tapToStart: "TOCCA PER INIZIARE", systemBoot: "AVVIO", initializing: "CARICAMENTO...",
@@ -9496,7 +9665,8 @@ const LANGS = {
         comeBack: "TORNA TRA ${t}", resetIn: "RESET: ${t}", noMoreSpins: "NESSUN GIRO OGGI!",
         equipped: "EQUIPAGGIATO", selected: "SELEZIONATO", owned: "POSSEDUTO",
         equip: "EQUIPAGGIA", unlock: "SBLOCCA", needCoins: "SERVONO MONETE",
-        ready: "PRONTO?", tapStart: "TOCCA PER INIZIARE"
+        ready: "PRONTO?", tapStart: "TOCCA PER INIZIARE",
+        pcGames: "PARTITE", pcTotalCoins: "TOTALE ★", pcDeaths: "MORTI"
     },
     de: {
         tapToStart: "TIPPEN ZUM STARTEN", systemBoot: "SYSTEMSTART", initializing: "LÄDT...",
@@ -9521,7 +9691,8 @@ const LANGS = {
         comeBack: "KOMM ZURÜCK IN ${t}", resetIn: "RESET: ${t}", noMoreSpins: "KEINE DREHS MEHR HEUTE!",
         equipped: "AUSGERÜSTET", selected: "AUSGEWÄHLT", owned: "BESITZT",
         equip: "AUSRÜSTEN", unlock: "FREISCHALTEN", needCoins: "MÜNZEN NÖTIG",
-        ready: "BEREIT?", tapStart: "TIPPEN ZUM STARTEN"
+        ready: "BEREIT?", tapStart: "TIPPEN ZUM STARTEN",
+        pcGames: "SPIELE", pcTotalCoins: "TOTAL ★", pcDeaths: "TODE"
     },
     pt: {
         tapToStart: "TOQUE PARA JOGAR", systemBoot: "INICIANDO", initializing: "CARREGANDO...",
@@ -9546,7 +9717,8 @@ const LANGS = {
         comeBack: "VOLTE EM ${t}", resetIn: "RESET: ${t}", noMoreSpins: "SEM GIROS HOJE!",
         equipped: "EQUIPADO", selected: "SELECIONADO", owned: "OBTIDO",
         equip: "EQUIPAR", unlock: "DESBLOQUEAR", needCoins: "MOEDAS INSUFICIENTES",
-        ready: "PRONTO?", tapStart: "TOQUE PARA JOGAR"
+        ready: "PRONTO?", tapStart: "TOQUE PARA JOGAR",
+        pcGames: "JOGOS", pcTotalCoins: "TOTAL ★", pcDeaths: "MORTES"
     },
     ru: {
         tapToStart: "НАЖМИТЕ ДЛЯ СТАРТА", systemBoot: "ЗАГРУЗКА", initializing: "ИНИЦИАЛИЗАЦИЯ...",
@@ -9571,7 +9743,8 @@ const LANGS = {
         comeBack: "ВЕРНИТЕСЬ ЧЕРЕЗ ${t}", resetIn: "СБРОС: ${t}", noMoreSpins: "СПИНОВ НЕТ СЕГОДНЯ!",
         equipped: "НАДЕТО", selected: "ВЫБРАНО", owned: "ЕСТЬ",
         equip: "НАДЕТЬ", unlock: "ОТКРЫТЬ", needCoins: "МАЛО МОНЕТ",
-        ready: "ГОТОВЫ?", tapStart: "НАЖМИТЕ ДЛЯ СТАРТА"
+        ready: "ГОТОВЫ?", tapStart: "НАЖМИТЕ ДЛЯ СТАРТА",
+        pcGames: "ИГРЫ", pcTotalCoins: "ВСЕГО ★", pcDeaths: "СМЕРТИ"
     },
     tr: {
         tapToStart: "BAŞLAMAK İÇİN DOKUN", systemBoot: "SİSTEM BAŞLIYOR", initializing: "YÜKLENİYOR...",
@@ -9596,7 +9769,8 @@ const LANGS = {
         comeBack: "${t} SONRA GEL", resetIn: "SIFIRLAMA: ${t}", noMoreSpins: "BUGÜN ÇEVİR YOK!",
         equipped: "GİYİLDİ", selected: "SEÇİLDİ", owned: "SENDE VAR",
         equip: "GİY", unlock: "AÇ", needCoins: "JETON YETERSİZ",
-        ready: "HAZIR MI?", tapStart: "BAŞLAMAK İÇİN DOKUN"
+        ready: "HAZIR MI?", tapStart: "BAŞLAMAK İÇİN DOKUN",
+        pcGames: "OYUNLAR", pcTotalCoins: "TOPLAM ★", pcDeaths: "ÖLÜMLER"
     },
     zh: {
         tapToStart: "点击开始", systemBoot: "系统启动", initializing: "加载中...",
@@ -9621,7 +9795,8 @@ const LANGS = {
         comeBack: "${t}后回来", resetIn: "重置: ${t}", noMoreSpins: "今天没有抽奖了！",
         equipped: "已装备", selected: "已选择", owned: "已拥有",
         equip: "装备", unlock: "解锁", needCoins: "金币不足",
-        ready: "准备好了吗？", tapStart: "点击开始"
+        ready: "准备好了吗？", tapStart: "点击开始",
+        pcGames: "局数", pcTotalCoins: "总计 ★", pcDeaths: "死亡"
     },
     ja: {
         tapToStart: "タップして開始", systemBoot: "システム起動", initializing: "ロード中...",
@@ -9646,7 +9821,8 @@ const LANGS = {
         comeBack: "${t}後に戻って", resetIn: "リセット: ${t}", noMoreSpins: "今日のスピンは終了！",
         equipped: "装備中", selected: "選択済み", owned: "所有済み",
         equip: "装備", unlock: "解放", needCoins: "コイン不足",
-        ready: "準備OK？", tapStart: "タップして開始"
+        ready: "準備OK？", tapStart: "タップして開始",
+        pcGames: "プレイ", pcTotalCoins: "合計 ★", pcDeaths: "デス"
     },
     ko: {
         tapToStart: "탭하여 시작", systemBoot: "시스템 부팅", initializing: "로딩 중...",
@@ -9671,7 +9847,8 @@ const LANGS = {
         comeBack: "${t} 후에 오세요", resetIn: "리셋: ${t}", noMoreSpins: "오늘 스핀 끝!",
         equipped: "장착 중", selected: "선택됨", owned: "보유 중",
         equip: "장착", unlock: "해제", needCoins: "코인 부족",
-        ready: "준비됐나요?", tapStart: "탭하여 시작"
+        ready: "준비됐나요?", tapStart: "탭하여 시작",
+        pcGames: "게임", pcTotalCoins: "합계 ★", pcDeaths: "사망"
     },
     ar: {
         tapToStart: "إضغط للبدء", systemBoot: "تشغيل النظام", initializing: "جاري التحميل...",
@@ -9696,7 +9873,8 @@ const LANGS = {
         comeBack: "عد بعد ${t}", resetIn: "إعادة: ${t}", noMoreSpins: "لا لفات اليوم!",
         equipped: "مُجهّز", selected: "مُختار", owned: "مملوك",
         equip: "تجهيز", unlock: "فتح", needCoins: "عملات غير كافية",
-        ready: "مستعد؟", tapStart: "إضغط للبدء"
+        ready: "مستعد؟", tapStart: "إضغط للبدء",
+        pcGames: "مباريات", pcTotalCoins: "المجموع ★", pcDeaths: "وفيات"
     },
     hi: {
         tapToStart: "खेलने के लिए टैप करें", systemBoot: "सिस्टम चालू", initializing: "लोड हो रहा है...",
@@ -9721,7 +9899,8 @@ const LANGS = {
         comeBack: "${t} बाद आएं", resetIn: "रीसेट: ${t}", noMoreSpins: "आज स्पिन खत्म!",
         equipped: "सज्जित", selected: "चयनित", owned: "स्वामित्व",
         equip: "पहनें", unlock: "खोलें", needCoins: "सिक्के कम",
-        ready: "तैयार?", tapStart: "खेलने के लिए टैप करें"
+        ready: "तैयार?", tapStart: "खेलने के लिए टैप करें",
+        pcGames: "खेल", pcTotalCoins: "कुल ★", pcDeaths: "मौतें"
     }
 };
 
@@ -9826,6 +10005,9 @@ function applyTranslations() {
     const pseudoIn = document.getElementById('pseudoInput');
     if (pseudoIn) pseudoIn.placeholder = i18n.pseudoInput;
     setText('pseudoConfirmBtn', i18n.pseudoConfirm);
+
+    // PILOT CARD
+    setText('pcGamesLbl', i18n.pcGames);
 }
 
 // Lancer au boot
