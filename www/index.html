@@ -7726,12 +7726,10 @@ function resetLoopTimers(hard = false){
 function goToMenu(){
   _startRunLock = false;          // 🔓 RÉARMEMENT CRITIQUE
   gameOverTriggered = false;
+  gameRunning = false;            // 🔥 Coupe le moteur logique (pas le RAF)
   document.body.classList.remove("playing");
 
-  // 🔥 Libère la mémoire GPU du Canvas AVANT de lancer le menu (fix crash iOS)
-  stopGameLoop();
-
-  // 📺 Change l'état de l'UI
+  // 📺 Change l'état de l'UI (relance vidéo menu, musique, etc.)
   setUIState("menu");
 
   // 👨‍🚀 Refresh carte pilote (stats lifetime + rang)
@@ -8264,6 +8262,11 @@ function setUIState(state){
     overlayGameOver.style.display = "none";
     overlayGameOver.style.pointerEvents = "none";
   }
+
+  // 🔥 FIX : Masquer les popups orphelines
+  if (typeof hideContinuePopup === "function") hideContinuePopup();
+  const lbOv = document.getElementById("lbOverlay");
+  if (lbOv) lbOv.classList.remove("visible");
 
   jetOn = false;
 
