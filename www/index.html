@@ -7725,6 +7725,10 @@ function resetLoopTimers(hard = false){
 // ================= GAME OVER / MENU =================
 function goToMenu(){
   _startRunLock = false;          // 🔓 RÉARMEMENT CRITIQUE
+
+  // 💥 NETTOYAGE GPU AGRESSIF avant de charger la vidéo menu (fix Jetsam iOS)
+  aggressiveGPUCleanup();
+
   setUIState("menu");
   document.body.classList.remove("playing");
   gameOverTriggered = false;
@@ -7815,6 +7819,44 @@ function stopMenuVideo(){
 }
 
 
+
+// ================= NETTOYAGE GPU AGRESSIF (iOS JETSAM FIX) =================
+function aggressiveGPUCleanup() {
+    console.log("🧹 Nettoyage GPU agressif en cours...");
+
+    // 1. Nettoyer le canvas principal
+    if (ctx && canvas) {
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
+
+    // 2. Tuer le _glowCache (CRITIQUE SUR iOS)
+    // Sur iOS, supprimer la référence (delete) ne libère pas toujours la mémoire GPU de suite.
+    // L'astuce ultime est de forcer la taille du canvas fantôme à 0 avant de le supprimer.
+    if (typeof _glowCache !== 'undefined') {
+        for (let key in _glowCache) {
+            if (_glowCache[key] && _glowCache[key].width !== undefined) {
+                _glowCache[key].width = 0;  // Force le flush du buffer GPU
+                _glowCache[key].height = 0;
+            }
+            delete _glowCache[key];
+        }
+    }
+
+    // 3. Vider les tableaux lourds
+    if (typeof particles !== 'undefined') particles.length = 0;
+    if (typeof playerParticles !== 'undefined') playerParticles.length = 0;
+
+    // 4. Vider les caches de gradients complexes (Map)
+    if (typeof solarGradCache !== 'undefined' && solarGradCache.clear) solarGradCache.clear();
+    if (typeof _solarGradCache !== 'undefined' && _solarGradCache.clear) _solarGradCache.clear();
+    if (typeof _arcticGradCache !== 'undefined' && _arcticGradCache.clear) _arcticGradCache.clear();
+    if (typeof _infernoGradCache !== 'undefined' && _infernoGradCache.clear) _infernoGradCache.clear();
+    if (typeof _neonGradCache !== 'undefined' && _neonGradCache.clear) _neonGradCache.clear();
+    if (typeof _voidCosmicCache !== 'undefined' && _voidCosmicCache.clear) _voidCosmicCache.clear();
+    if (typeof _moonyHaloCache !== 'undefined' && _moonyHaloCache.clear) _moonyHaloCache.clear();
+    if (typeof _forestGradCache !== 'undefined' && _forestGradCache.clear) _forestGradCache.clear();
+}
 
 // ================= STOP GAME LOOP (GPU FRIENDLY) =================
 function stopGameLoop(){
