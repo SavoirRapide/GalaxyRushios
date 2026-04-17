@@ -7725,13 +7725,9 @@ function resetLoopTimers(hard = false){
 // ================= GAME OVER / MENU =================
 function goToMenu(){
   _startRunLock = false;          // 🔓 RÉARMEMENT CRITIQUE
-  gameOverTriggered = false;
-  gameRunning = false;            // 🔥 Coupe le moteur logique (pas le RAF)
-  document.body.classList.remove("playing");
-
-  // 📺 Change l'état de l'UI (relance vidéo menu, musique, etc.)
   setUIState("menu");
-
+  document.body.classList.remove("playing");
+  gameOverTriggered = false;
   // 👨‍🚀 Refresh carte pilote (stats lifetime + rang)
   if (typeof updatePilotCard === "function") updatePilotCard();
 }
