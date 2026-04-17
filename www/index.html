@@ -1612,7 +1612,7 @@ body.playing .menuParticles {
 <div id="menuOverlay">
   <canvas id="galaxyBG"></canvas>
   <div class="menuParticles"></div>
-  <video id="menuVideo" muted loop playsinline preload="none" data-src="./assets/menu_bg.mp4"></video>
+  <video id="menuVideo" muted loop playsinline webkit-playsinline preload="auto" data-src="./assets/menu_bg.mp4"></video>
 
   <div id="menuStats">
     <div class="statBox best">
@@ -7765,36 +7765,47 @@ function initNoise(){
 // ================= MENU VIDEO (GPU SAFE) =================
 const MENU_VIDEO_SRC = menuVideo?.dataset?.src || "";
 
+// ================= MENU VIDEO (iOS SAFE — Apple Pattern) =================
+let videoPlayPromise = null; // Indispensable pour iOS
+
 function startMenuVideo(){
   if (!menuVideo || !MENU_VIDEO_SRC) return;
 
-  if (!menuVideo.src){
+  // On injecte la source UNE SEULE FOIS
+  if (!menuVideo.getAttribute("src")){
     menuVideo.src = MENU_VIDEO_SRC;
     menuVideo.load();
   }
 
   menuVideo.currentTime = 0;
-  const p = menuVideo.play();
-  if (p && p.catch) p.catch(()=>{});
+
+  try {
+    // On stocke la promesse d'Apple
+    videoPlayPromise = menuVideo.play();
+    if (videoPlayPromise !== undefined) {
+      videoPlayPromise.catch(err => {
+        console.warn("iOS Autoplay empêché (souvent lié au mode économie d'énergie):", err);
+      });
+    }
+  } catch(e) {}
 }
 
-// Remplace ta fonction à la ligne 1162 par celle-ci :
 function stopMenuVideo(){
   if (!menuVideo) return;
 
-  try {
-    menuVideo.pause();
-    // 🛡️ On attend 100ms que le moteur vidéo ait fini de pauser 
-    // avant de vider le SRC, pour éviter le crash Android.
-    setTimeout(() => {
-        if (uiState === "playing") { // On vérifie qu'on est toujours en jeu
-            menuVideo.removeAttribute("src");
-            menuVideo.load(); 
-        }
-    }, 100);
-  } catch(e) {
-    console.error("Video Stop Error Safe", e);
+  // 🛡️ SÉCURITÉ APPLE CRITIQUE :
+  // On ne peut pauser une vidéo que si sa promesse de démarrage est résolue.
+  if (videoPlayPromise !== undefined && videoPlayPromise !== null) {
+    videoPlayPromise.then(() => {
+      menuVideo.pause();
+    }).catch(() => {
+      // La lecture a déjà été avortée, on ne fait rien.
+    });
+  } else {
+    try { menuVideo.pause(); } catch(e) {}
   }
+
+  // ⛔️ ON NE TOUCHE PLUS AU SRC ! On laisse le navigateur gérer sa RAM.
 }
 
 
