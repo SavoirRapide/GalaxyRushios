@@ -1028,12 +1028,12 @@ body.comboActive #combo {
 /* =========================================================================
    📱 MEDIA QUERIES & FIXES
 ========================================================================= */
-/* Cache le menu quand on joue (CORRIGÉ) */
+/* Cache le menu quand on joue (CORRIGÉ POUR iOS — pas de display:none = pas de deadlock WebKit) */
 body.playing #menuOverlay,
 body.playing #menuVideo,
 body.playing #galaxyBG,
 body.playing .menuParticles {
-    display: none !important; visibility: hidden !important; opacity: 0 !important; pointer-events: none !important;
+    visibility: hidden !important; opacity: 0 !important; pointer-events: none !important; z-index: -100 !important;
 }
 
 /* Mobile Portrait Shop Fix */
@@ -7765,7 +7765,7 @@ function initNoise(){
 // ================= MENU VIDEO (GPU SAFE) =================
 const MENU_VIDEO_SRC = menuVideo?.dataset?.src || "";
 
-// ================= MENU VIDEO (iOS SAFE — Apple Pattern) =================
+// ================= MENU VIDEO (iOS SAFE — Apple Pattern + Double RAF anti-deadlock) =================
 let videoPlayPromise = null; // Indispensable pour iOS
 
 function startMenuVideo(){
@@ -7777,17 +7777,23 @@ function startMenuVideo(){
     menuVideo.load();
   }
 
-  menuVideo.currentTime = 0;
-
-  try {
-    // On stocke la promesse d'Apple
-    videoPlayPromise = menuVideo.play();
-    if (videoPlayPromise !== undefined) {
-      videoPlayPromise.catch(err => {
-        console.warn("iOS Autoplay empêché (souvent lié au mode économie d'énergie):", err);
-      });
-    }
-  } catch(e) {}
+  // 🛡️ FIX iPHONE 10-SECOND FREEZE (WebKit Deadlock) :
+  // On attend que le CSS (visibility) soit bien appliqué par la carte graphique
+  // avant de demander au décodeur matériel de lancer la lecture.
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      menuVideo.currentTime = 0;
+      try {
+        // On stocke la promesse d'Apple
+        videoPlayPromise = menuVideo.play();
+        if (videoPlayPromise !== undefined) {
+          videoPlayPromise.catch(err => {
+            console.warn("iOS Autoplay empêché:", err);
+          });
+        }
+      } catch(e) {}
+    });
+  });
 }
 
 function stopMenuVideo(){
@@ -8870,6 +8876,10 @@ function hardRefreshCanvas() {
     console.log("🔧 HARD REFRESH CANVAS (Android Surface rebuild SAFE)");
     const c = document.getElementById("game");
     if (!c) return;
+
+    // 🛡️ SÉCURITÉ iOS : ne pas forcer le reflow du canvas si on est au menu
+    // (la vidéo menu tourne → collision GPU possible)
+    if (uiState === "menu") return;
 
     // 🔥 FIX : On ne met PLUS JAMAIS la largeur ou la hauteur à 0.
     // On appelle directement ta fonction resizeCanvas qui recalcule tout proprement
