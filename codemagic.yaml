@@ -1,6 +1,6 @@
 workflows:
   ios-capacitor-workflow:
-    name: Galaxy Rush iOS Build 1.1.1
+    name: Galaxy Rush iOS Build 1.1.2
     max_build_duration: 60
     instance_type: mac_mini_m2
     integrations:
@@ -28,7 +28,7 @@ workflows:
       - name: Configure Info.plist
         script: |
           cd ios/App/App
-          /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString 1.1.1" Info.plist
+          /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString 1.1.2" Info.plist
           /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $BUILD_NUMBER" Info.plist
       - name: Set up code signing
         script: |
