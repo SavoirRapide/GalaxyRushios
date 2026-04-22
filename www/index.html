@@ -126,6 +126,7 @@ canvas#game {
   -webkit-background-clip: text; -webkit-text-fill-color: transparent;
   filter: drop-shadow(0 4px 0px rgba(0,0,0,0.5));
   will-change: transform;
+  padding-right: 0.25em;   /* ✨ v2 : évite que l'italique coupe le dernier chiffre */
 }
 
 /* PIÈCES */
@@ -153,61 +154,282 @@ canvas#game {
   color: #ffd700; text-shadow: 0 2px 4px rgba(0,0,0,0.8);
 }
 
-/* OVERDRIVE & COMBO */
+/* =================================================================
+   🎯 OVERDRIVE v2 — barre horizontale sous le score, grossit avec le remplissage
+   + vignette active + warning ending (pas de shake)
+================================================================= */
 #overdriveMeter {
-  position: absolute; 
-  right: max(32px, env(safe-area-inset-right)); 
-  top: 60%; 
-  /* On combine le centrage Y et le scale */
-  transform: translateY(-50%) scale(var(--ui-scale, 1));
-  transform-origin: center right;
-  
-  width: 18px; height: 200px; z-index: 20; pointer-events: none;
+  position: absolute;
+  top: 100%;                  /* Juste sous le score */
+  left: 50%;
+  transform: translateX(-50%);
+  margin-top: 8px;
+  z-index: 20;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
 }
-#overdriveLabel { 
-    position: absolute; top: -20px; width: 100%; text-align: center; 
-    font-size: 10px; font-weight: 900; color: #40c4ff; 
+
+#overdriveLabel {
+  font-family: var(--font-title);
+  font-weight: 700;
+  font-size: 10px;
+  letter-spacing: 3px;
+  color: rgba(180, 210, 255, 0.55);
+  text-shadow: 0 1px 3px rgba(0,0,0,0.6);
+  transition: letter-spacing 0.5s ease, color 0.5s ease, opacity 0.5s ease;
+  user-select: none;
 }
+
 #overdriveBarOuter {
-  position: relative; width: 100%; height: 100%;
-  border-radius: 4px; background: rgba(10, 15, 30, 0.6);
-  border: 1px solid rgba(100, 180, 255, 0.3); overflow: hidden;
+  position: relative;
+  width: 40px;                /* Commence petit, grossit avec le remplissage */
+  height: 4px;
+  border-radius: 100px;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.03) 0%, rgba(0,0,0,0) 50%),
+    rgba(15, 20, 40, 0.7);
+  box-shadow:
+    inset 0 1px 1.5px rgba(0, 0, 0, 0.65),
+    inset 0 -1px 0.5px rgba(255, 255, 255, 0.04),
+    0 0 0 1px rgba(120, 180, 255, 0.12);
+  overflow: visible;
+  transition:
+    width 0.75s cubic-bezier(0.34, 1.1, 0.64, 1),
+    height 0.6s cubic-bezier(0.34, 1.35, 0.64, 1),
+    box-shadow 0.5s ease;
 }
+
+/* Ticks subtils à 25/50/75 (repères de précision) */
+#overdriveBarOuter::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 100px;
+  background-image:
+    linear-gradient(90deg,
+      transparent 24.5%, rgba(255,255,255,0.08) 25%, rgba(255,255,255,0.08) 25.3%, transparent 25.8%,
+      transparent 49.5%, rgba(255,255,255,0.12) 50%, rgba(255,255,255,0.12) 50.3%, transparent 50.8%,
+      transparent 74.5%, rgba(255,255,255,0.08) 75%, rgba(255,255,255,0.08) 75.3%, transparent 75.8%);
+  pointer-events: none;
+  z-index: 2;
+}
+
 #overdriveBarInner {
-  position: absolute; bottom: 0; width: 100%; height: 0%; border-radius: 2px;
-  background: linear-gradient(180deg, #ffffff, #40c4ff, #2962ff);
-  box-shadow: 0 0 20px rgba(41, 98, 255, 0.6); transition: height 0.1s linear;
+  position: absolute;
+  top: 0; left: 0; bottom: 0;
+  width: 100%;                /* La barre elle-même grossit — le fill reste 100% en remplissage */
+  border-radius: 100px;
+  background: linear-gradient(90deg,
+    #4facfe 0%,
+    #7a99ff 40%,
+    #a78bfa 75%,
+    #f093fb 100%);
+  box-shadow:
+    0 0 4px rgba(79, 172, 254, 0.7),
+    inset 0 1px 1px rgba(255, 255, 255, 0.35);
+  overflow: hidden;
 }
-body.overdriveActive #overdriveBarInner { animation: overdrivePulse 0.8s ease-in-out infinite alternate; }
 
+/* Shimmer permanent qui traverse le fill (signe de vie) */
+#overdriveBarInner::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg,
+    transparent 0%, transparent 30%,
+    rgba(255, 255, 255, 0.25) 48%,
+    rgba(255, 255, 255, 0.4) 50%,
+    rgba(255, 255, 255, 0.25) 52%,
+    transparent 70%, transparent 100%);
+  background-size: 300% 100%;
+  animation: od-shimmer 4s ease-in-out infinite;
+  pointer-events: none;
+}
+@keyframes od-shimmer {
+  0%, 10% { background-position: 150% 0%; }
+  50% { background-position: -50% 0%; }
+  60%, 100% { background-position: -50% 0%; }
+}
+
+/* ── État FULL (100% rempli, prêt à activer) ── */
+#overdriveMeter.full #overdriveBarOuter {
+  height: 6px;
+  box-shadow:
+    inset 0 1px 1.5px rgba(0, 0, 0, 0.6),
+    inset 0 -1px 0.5px rgba(255, 255, 255, 0.1),
+    0 0 0 1px rgba(240, 147, 251, 0.6),
+    0 0 14px rgba(240, 147, 251, 0.45);
+}
+#overdriveMeter.full #overdriveBarInner {
+  background: linear-gradient(90deg,
+    #4facfe 0%, #a78bfa 45%, #f093fb 80%, #fbbf24 100%);
+  animation: od-fill-ready 2.2s ease-in-out infinite;
+}
+@keyframes od-fill-ready {
+  0%, 100% { filter: brightness(1) saturate(1); }
+  50% { filter: brightness(1.15) saturate(1.15); }
+}
+#overdriveMeter.full #overdriveLabel {
+  color: rgba(251, 191, 36, 0.95);
+  letter-spacing: 4.5px;
+  text-shadow: 0 0 6px rgba(251, 191, 36, 0.5), 0 1px 3px rgba(0,0,0,0.7);
+  animation: od-label-breath 2.2s ease-in-out infinite;
+}
+@keyframes od-label-breath {
+  0%, 100% { opacity: 0.75; }
+  50% { opacity: 1; }
+}
+
+/* ── État ACTIVE (pendant l'overdrive) ── */
+body.overdriveActive #overdriveBarOuter {
+  height: 7px;
+  box-shadow:
+    inset 0 1px 2px rgba(0, 0, 0, 0.6),
+    inset 0 -1px 0.5px rgba(255, 255, 255, 0.12),
+    0 0 0 1.5px rgba(251, 191, 36, 0.7),
+    0 0 20px rgba(251, 191, 36, 0.55),
+    0 0 40px rgba(240, 147, 251, 0.3);
+}
+body.overdriveActive #overdriveBarInner {
+  background: linear-gradient(90deg, #fbbf24 0%, #f093fb 50%, #4facfe 100%);
+  background-size: 250% 100%;
+  animation: od-active-flow 1.2s linear infinite;
+}
+@keyframes od-active-flow {
+  0% { background-position: 0% 50%; }
+  100% { background-position: 250% 50%; }
+}
+body.overdriveActive #overdriveLabel {
+  color: rgba(251, 191, 36, 1);
+  letter-spacing: 5px;
+  opacity: 1;
+}
+
+/* ── État ENDING (warning ~1s avant fin) ── */
+body.overdriveEnding #overdriveBarOuter {
+  box-shadow:
+    inset 0 1px 2px rgba(0, 0, 0, 0.6),
+    inset 0 -1px 0.5px rgba(255, 255, 255, 0.1),
+    0 0 0 1.5px rgba(255, 140, 60, 0.85),
+    0 0 14px rgba(255, 140, 60, 0.55);
+  animation: od-ending-warning 0.4s ease-in-out infinite alternate;
+}
+@keyframes od-ending-warning {
+  from { filter: brightness(1); }
+  to { filter: brightness(1.35); }
+}
+body.overdriveEnding #overdriveBarInner {
+  background: linear-gradient(90deg, #ff8a3c 0%, #f093fb 100%);
+}
+body.overdriveEnding #overdriveLabel {
+  color: #ff9b6b;
+  letter-spacing: 4px;
+}
+
+/* ── Flash d'activation (léger depuis le haut) ── */
+#overdriveActivationFlash {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 15;
+  background: radial-gradient(ellipse at 50% 8%, rgba(251, 191, 36, 0.25) 0%, transparent 35%);
+  opacity: 0;
+}
+#overdriveActivationFlash.triggered {
+  animation: od-activation-flash 0.7s ease-out;
+}
+@keyframes od-activation-flash {
+  0% { opacity: 0; }
+  20% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+/* ── Vignette ACTIVE (subtle, dorée/rose) ── */
+#overdriveVignette {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 14;
+  background: radial-gradient(ellipse at center,
+    transparent 60%,
+    rgba(251, 191, 36, 0.06) 80%,
+    rgba(240, 147, 251, 0.1) 100%);
+  opacity: 0;
+  transition: opacity 0.4s;
+}
+body.overdriveActive #overdriveVignette { opacity: 1; }
+
+/* ── Vignette ENDING (warning pulse orange/rouge) ── */
+#overdriveVignetteEnding {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 14;
+  background: radial-gradient(ellipse at center,
+    transparent 55%,
+    rgba(255, 100, 50, 0.15) 85%,
+    rgba(255, 80, 50, 0.25) 100%);
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+body.overdriveEnding #overdriveVignetteEnding {
+  opacity: 1;
+  animation: od-vignette-pulse 0.5s ease-in-out infinite alternate;
+}
+@keyframes od-vignette-pulse {
+  from { opacity: 0.65; }
+  to { opacity: 1; }
+}
+/* Fin overdrive v2 */
+
+/* COMBO (inchangé) */
+/* ✨ v2 : combo positionné juste à droite du score (ne grignotte pas) */
+.score-row {
+  position: relative;
+  display: inline-block;
+  overflow: visible;      /* ✨ v2 : éviter tout clip du score italique ou du combo */
+}
 #combo {
-  position: absolute; 
-  right: max(60px, env(safe-area-inset-right)); 
-  top: 50%; 
+  position: absolute;
+  left: 100%;              /* Directement à droite du score */
+  top: 50%;
+  transform: translateY(-50%) scale(0.7);
+  transform-origin: left center;
+  margin-left: 18px;       /* Espace entre score et combo */
   
-  /* 🔥 SCALE FIX: On applique le scale de base */
-  transform: translateY(-50%) scale(var(--ui-scale, 1));
-  transform-origin: center right;
-  
-  font-family: var(--font-title); font-size: 24px; font-weight: 900; font-style: italic;
-  opacity: 0; color: #fff; text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
-  transition: opacity 0.2s ease, transform 0.1s;
+  font-family: var(--font-title);
+  font-size: 32px;
+  font-weight: 900;
+  font-style: italic;
+  color: #fff;
+  text-shadow: 0 0 10px rgba(255, 255, 255, 0.5), 0 2px 6px rgba(0,0,0,0.8);
+  opacity: 0;
+  visibility: hidden;     /* Garantit qu'il disparaît complètement */
+  transition: opacity 0.25s ease, transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), visibility 0s linear 0.25s;
+  pointer-events: none;
+  white-space: nowrap;
 }
 
-/* Lors du pop, on multiplie le scale de base par 1.1 */
-body.comboActive #combo { 
-  opacity: 1; 
-  /* calc() permet de garder la proportion relative à l'UI globale */
-  transform: translateY(-50%) scale(calc(var(--ui-scale, 1) * 1.3)); 
+body.comboActive #combo {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(-50%) scale(1);
+  transition: opacity 0.25s ease, transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), visibility 0s linear 0s;
 }
-#combo span { color: #ffeb3b; }
+
+#combo span {
+  color: #ffeb3b;
+  text-shadow: 0 0 12px rgba(255, 235, 59, 0.7), 0 2px 6px rgba(0,0,0,0.8);
+}
 
 @keyframes scorePulse { 
   0%   { transform: scale(1); } 
   50%  { transform: scale(1.15); } /* Boosté légèrement */
   100% { transform: scale(1); } 
 }
-@keyframes overdrivePulse { from{filter:brightness(1);} to{filter:brightness(1.3);} }
 
 /* =========================================================================
    🏠 MENU PRINCIPAL & INTRO
@@ -1771,17 +1993,17 @@ body.playing .menuParticles {
     </div>
 
     <div id="ui">
-      <div id="uiScore">0</div>
-    </div>
-
-    <div id="overdriveMeter">
-      <div id="overdriveLabel">BOOST</div>
-      <div id="overdriveBarOuter">
-        <div id="overdriveBarInner"></div>
+      <div class="score-row">
+        <div id="uiScore">0</div>
+        <div id="combo">×<span id="comboVal">1</span></div>
+      </div>
+      <div id="overdriveMeter">
+        <div id="overdriveLabel">BOOST</div>
+        <div id="overdriveBarOuter">
+          <div id="overdriveBarInner"></div>
+        </div>
       </div>
     </div>
-
-    <div id="combo">x<span id="comboVal">1</span></div>
 
     <div id="continuePopup">
       <div class="revive-card">
@@ -1918,6 +2140,11 @@ body.playing .menuParticles {
     <button class="pseudo-confirm" id="pseudoConfirmBtn" onclick="confirmPseudo()">CONFIRM</button>
   </div>
 </div>
+
+<!-- Overdrive v2 FX layers (position: fixed, par-dessus tout) -->
+<div id="overdriveActivationFlash"></div>
+<div id="overdriveVignette"></div>
+<div id="overdriveVignetteEnding"></div>
 
 </body>
 <script>
@@ -2696,6 +2923,14 @@ function activateOverdrive(){
   document.body.classList.add("overdriveActive");
   document.body.classList.remove("overdriveEnding");
 
+  // ✨ v2 : flash d'activation subtile depuis le haut de l'écran
+  const _ovFlash = document.getElementById('overdriveActivationFlash');
+  if (_ovFlash) {
+    _ovFlash.classList.remove('triggered');
+    void _ovFlash.offsetWidth; // force reflow pour relancer l'anim
+    _ovFlash.classList.add('triggered');
+  }
+
  if (!audioSettings.mute){
     playSFX(sfxOverdrive);
 }
@@ -2714,10 +2949,29 @@ function deactivateOverdrive(){
 }
 
 function updateOverdriveUI(){
-  if (overdriveActive) return;
-
   const ratio = Math.min(1, overdrive / OVERDRIVE_THRESHOLD);
-  if (UI.overFill)  UI.overFill.style.height = (ratio * 100) + "%";
+  const meterEl = document.getElementById('overdriveMeter');
+  const barOuter = document.getElementById('overdriveBarOuter');
+
+  if (overdriveActive) {
+    // Pendant l'overdrive : la barre reste à sa taille max, le fill se vide via le tick
+    if (barOuter) barOuter.style.width = '120px';
+    if (meterEl) meterEl.classList.remove('full');
+    return;
+  }
+
+  // Hors overdrive : la barre elle-même grossit (40px → 120px selon remplissage)
+  const minW = 40, maxW = 120;
+  if (barOuter) barOuter.style.width = (minW + (maxW - minW) * ratio) + 'px';
+  // Le fill interne reste à 100% (c'est la barre qui grossit, pas le fill)
+  if (UI.overFill) UI.overFill.style.width = '100%';
+
+  // Classe "full" quand 100% → anime CSS (pulse doré, label brille)
+  if (meterEl) {
+    if (ratio >= 1) meterEl.classList.add('full');
+    else meterEl.classList.remove('full');
+  }
+
   if (UI.overCount) UI.overCount.textContent = Math.floor(overdrive);
 }
 
@@ -3846,7 +4100,8 @@ function update(delta, ts){
     const pctInt = (pct * 100) | 0;
     if (pctInt !== lastOverdrivePct){
       lastOverdrivePct = pctInt;
-      if (UI.overFill) UI.overFill.style.height = pctInt + "%";
+      // ✨ v2 : barre horizontale → fill se vide en largeur (pas en hauteur)
+      if (UI.overFill) UI.overFill.style.width = pctInt + "%";
     }
     if (pct < 0.35 && !overdriveEndingFlag){
       overdriveEndingFlag = true;
@@ -3957,6 +4212,12 @@ function update(delta, ts){
       combo = ((now - lastCoinTime) < 1600) ? (combo + 1) : 1;
       lastCoinTime = now; addOverdrive(1);
       score += (overdriveActive ? 400 : 200) + (combo * 20);
+      // ✨ v2 : feedback visuel combo (apparition quand combo >= 2)
+      if (combo >= 2) {
+        document.body.classList.add("comboActive");
+      } else {
+        document.body.classList.remove("comboActive");
+      }
     }
   }
 
@@ -3968,6 +4229,10 @@ function update(delta, ts){
     if (UI.score) UI.score.textContent = Math.floor(score);
     if (UI.coins) UI.coins.textContent = coinsCollected;
     if (UI.combo) UI.combo.textContent = combo;
+    // ✨ v2 : si le combo expire (>1.6s sans coin), on cache l'indicateur
+    if (combo >= 2 && (now - lastCoinTime) >= 1600) {
+      document.body.classList.remove("comboActive");
+    }
   }
 // 👉 AJOUTE CETTE LIGNE ICI (Juste avant le fxGarbageCollect) :
   if (typeof updateSpaceJourney === "function") updateSpaceJourney(score, delta);
@@ -7557,11 +7822,14 @@ function resetRun() {
   coinsCollected = 0;
   combo = 1;
   lastCoinTime = 0;
+  document.body.classList.remove("comboActive");  // ✨ v2 : reset combo visuel
 
-  // 🔥 FIX OVERDRIVE COMPLET
+  // 🔥 FIX OVERDRIVE COMPLET (la jauge persistait entre parties — bug signalé par les joueurs)
   overdriveActive = false;
   overdriveTimer = 0;
-  // if (typeof overdriveGauge !== "undefined") overdriveGauge = 0;
+  overdrive = 0;
+  overdriveEndingFlag = false;
+  document.body.classList.remove('overdriveActive', 'overdriveEnding');
 
   // --- 5. SPAWN & DIFFICULTÉ ---
   lastSpawn = -5000;
@@ -7610,13 +7878,19 @@ if (rankBtn) rankBtn.style.display = "none";
     if (UI.score) UI.score.textContent = "0";
     if (UI.coins) UI.coins.textContent = "0";
     if (UI.combo) UI.combo.textContent = "1";
+    document.body.classList.remove("comboActive");  // ✨ v2 : reset combo visuel
 
     if (UI.overFill) {
       UI.overFill.style.transition = "none";
-      UI.overFill.style.height = "0%";
+      UI.overFill.style.width = "0%";
       void UI.overFill.offsetWidth;
       UI.overFill.style.transition = "";
     }
+    // ✨ v2 : reset la classe "full" sur le meter
+    const _ovMeter = document.getElementById('overdriveMeter');
+    if (_ovMeter) _ovMeter.classList.remove('full');
+    const _ovOuter = document.getElementById('overdriveBarOuter');
+    if (_ovOuter) _ovOuter.style.width = '40px';
 
     if (UI.overBar) UI.overBar.classList.remove("active");
   }
